@@ -1,0 +1,179 @@
+{% extends "animaux/base.html" %}
+
+{% block content %}
+<style>
+    /* ---------- Styles généraux ---------- */
+    body {
+        background: linear-gradient(135deg, #4e1b9b, #7a2fc9, #c471ed);
+        font-family: 'Poppins', sans-serif;
+        color: #fff;
+        overflow-x: hidden;
+    }
+
+    .hero {
+        text-align: center;
+        padding: 6rem 2rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ffffff, #d4b5ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 1rem;
+    }
+
+    .hero p {
+        font-size: 1.3rem;
+        opacity: 0.9;
+        margin-bottom: 2.5rem;
+    }
+
+    .hero .btn {
+        border-radius: 50px;
+        padding: 1rem 2.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #ff6b6b, #ff9a3c);
+        border: none;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-5px);
+        background: linear-gradient(135deg, #ff8e8e, #ffa15c);
+    }
+
+    .btn-outline-light {
+        border: 2px solid white;
+        color: white;
+        background: transparent;
+    }
+
+    .btn-outline-light:hover {
+        background: white;
+        color: #6a0dad;
+    }
+
+    /* ---------- Section Services ---------- */
+    .services {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+        padding: 5rem 2rem;
+    }
+
+    .service-card {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 2rem;
+        width: 300px;
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .service-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    }
+
+    .service-card i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #ffb6ff;
+    }
+
+    .service-card h3 {
+        margin-bottom: 0.8rem;
+        font-weight: 700;
+        color: #fff;
+    }
+
+    .service-card p {
+        font-size: 1rem;
+        opacity: 0.85;
+    }
+
+    /* ---------- Effet vague bas ---------- */
+    .wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 150px;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff10" fill-opacity="1" d="M0,96L48,122.7C96,149,192,203,288,197.3C384,192,480,128,576,106.7C672,85,768,107,864,144C960,181,1056,235,1152,240C1248,245,1344,203,1392,181.3L1440,160V320H0Z"></path></svg>');
+        background-size: cover;
+        animation: wave 10s linear infinite;
+        opacity: 0.3;
+    }
+
+    @keyframes wave {
+        from { background-position-x: 0; }
+        to { background-position-x: 1000px; }
+    }
+
+    /* ---------- Footer ---------- */
+    footer {
+        text-align: center;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.9rem;
+    }
+
+</style>
+
+<div class="hero">
+    <h1><i class="fas fa-tractor"></i> Bienvenue sur <strong>GeoBétail</strong></h1>
+    <p>La solution de suivi intelligent et en temps réel pour vos troupeaux.</p>
+    <a href="{% url 'inscription' %}" class="btn btn-primary">
+        <i class="fas fa-user-plus me-2"></i>Créer un compte
+    </a>
+    <a href="{% url 'login' %}" class="btn btn-outline-light">
+        <i class="fas fa-sign-in-alt me-2"></i>Se connecter
+    </a>
+</div>
+
+<section class="services">
+    <div class="service-card">
+        <i class="fas fa-map-marked-alt"></i>
+        <h3>Suivi GPS</h3>
+        <p>Localisez vos animaux en temps réel grâce à notre technologie de géolocalisation intégrée.</p>
+    </div>
+
+    <div class="service-card">
+        <i class="fas fa-bell"></i>
+        <h3>Alertes instantanées</h3>
+        <p>Recevez une alerte immédiate en cas de mouvement suspect ou de sortie de zone.</p>
+    </div>
+
+    <div class="service-card">
+        <i class="fas fa-camera"></i>
+        <h3>Surveillance visuelle</h3>
+        <p>Grâce à la caméra ESP32-CAM, surveillez vos bétails directement depuis votre tableau de bord.</p>
+    </div>
+
+    <div class="service-card">
+        <i class="fas fa-satellite"></i>
+        <h3>Colliers connectés</h3>
+        <p>Des colliers IoT T-Beam pour un suivi fiable, même dans les zones reculées.</p>
+    </div>
+</section>
+
+<div class="wave"></div>
+
+<footer>
+    © {{ now|date:"Y" }} GeoBétail — Votre solution de suivi intelligent pour les éleveurs africains.
+</footer>
+
+{% endblock %}

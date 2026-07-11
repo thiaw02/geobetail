@@ -1,0 +1,26 @@
+{% extends "animaux/base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center text-light">
+    <h1>Créer un compte</h1>
+    <p>Remplissez les informations pour vous inscrire sur GeoBétail.</p>
+
+    <form method="post" class="mt-4 mx-auto" style="max-width:400px;">
+        {% csrf_token %}
+        <div class="form-group mb-3">
+            <input type="text" name="username" class="form-control" placeholder="Nom d’utilisateur" required>
+        </div>
+        <div class="form-group mb-3">
+            <input type="email" name="email" class="form-control" placeholder="Adresse e-mail" required>
+        </div>
+        <div class="form-group mb-3">
+            <input type="password" name="password" class="form-control" placeholder="Mot de passe" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">S’inscrire</button>
+    </form>
+
+    <p class="mt-4">
+        Vous avez déjà un compte ? <a href="{% url 'login' %}" class="text-warning">Connectez-vous</a>
+    </p>
+</div>
+{% endblock %}

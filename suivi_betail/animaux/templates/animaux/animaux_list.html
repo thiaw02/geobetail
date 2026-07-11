@@ -1,0 +1,271 @@
+{% extends "animaux/base.html" %}
+
+{% block title %}Liste des Animaux - GeoBétail{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4 text-white">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h1 class="display-6 mb-0">📋 Liste des Animaux</h1>
+                        <p class="mb-0 opacity-75">Gestion complète de votre cheptel</p>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-primary me-2" onclick="refreshAnimalsList()">
+                            <i class="fas fa-sync-alt me-2"></i>Actualiser
+                        </button>
+                        <a href="/admin/animaux/animal/add/" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Ajouter un animal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="glass-card p-4 text-white">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Animal</th>
+                                <th>Type</th>
+                                <th>Race</th>
+                                <th>Device T-Beam</th>
+                                <th>Statut</th>
+                                <th>Positions</th>
+                                <th>Dernier contact</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="animaux-table-body">
+                            <!-- Les données seront chargées via JavaScript -->
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <div class="loading mb-3"></div>
+                                    <p class="mb-0 opacity-75">Chargement des animaux...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Statistiques T-Beam -->
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 text-center">
+                            <h4 class="text-success mb-1" id="total-animals">0</h4>
+                            <small class="opacity-75">Total animaux</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 text-center">
+                            <h4 class="text-success mb-1" id="active-animals">0</h4>
+                            <small class="opacity-75">Animaux actifs</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 text-center">
+                            <h4 class="text-warning mb-1" id="alert-animals">0</h4>
+                            <small class="opacity-75">En alerte</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 text-center">
+                            <h4 class="text-info mb-1" id="tbeam-devices">0</h4>
+                            <small class="opacity-75">T-Beam actifs</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Configuration pour la liste des animaux - CORRIGÉE
+const ANIMALS_CONFIG = {
+    updateInterval: 15000,
+    apiEndpoints: {
+        animaux: '/api/animaux/list/',
+        dashboard: '/api/dashboard/stats/'
+    }
+};
+
+let animalsInterval;
+
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    initializeAnimalsList();
+});
+
+function initializeAnimalsList() {
+    // Chargement initial des données
+    refreshAnimalsList();
+    
+    // Mise à jour périodique
+    animalsInterval = setInterval(refreshAnimalsList, ANIMALS_CONFIG.updateInterval);
+    
+    // Écoute des mises à jour T-Beam
+    setupTBeamListeners();
+}
+
+function setupTBeamListeners() {
+    // Écoute des messages de mise à jour
+    if (typeof EventSource !== 'undefined') {
+        const eventSource = new EventSource('/api/tbeam/stream/');
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            handleTBeamUpdate(data);
+        };
+    }
+}
+
+function handleTBeamUpdate(tbeamData) {
+    // Mettre à jour la ligne correspondante dans le tableau
+    const rows = document.querySelectorAll(`[data-device-id="${tbeamData.device_id}"]`);
+    
+    rows.forEach(row => {
+        // Mettre à jour le badge de statut
+        const statusBadge = row.querySelector('.badge');
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-success';
+            statusBadge.textContent = 'ACTIF';
+        }
+        
+        // Mettre à jour le dernier contact
+        const lastContactCell = row.cells[5];
+        if (lastContactCell) {
+            lastContactCell.textContent = 'À l\'instant';
+        }
+        
+        // Effet visuel de mise à jour
+        row.classList.add('new-data-pulse');
+        setTimeout(() => row.classList.remove('new-data-pulse'), 2000);
+    });
+    
+    // Rafraîchir les statistiques
+    refreshAnimalsList();
+}
+
+async function refreshAnimalsList() {
+    try {
+        const [animauxRes, statsRes] = await Promise.all([
+            fetch(ANIMALS_CONFIG.apiEndpoints.animaux),
+            fetch(ANIMALS_CONFIG.apiEndpoints.dashboard)
+        ]);
+        
+        const animauxData = await animauxRes.json();
+        const statsData = await statsRes.json();
+        
+        if (animauxData.animaux && statsData.stats) {
+            updateAnimalsTable(animauxData.animaux);
+            updateAnimalsStats(statsData.stats);
+        }
+    } catch (error) {
+        console.error('Erreur actualisation liste animaux:', error);
+    }
+}
+
+function updateAnimalsTable(animaux) {
+    const tbody = document.getElementById('animaux-table-body');
+    
+    if (!animaux || animaux.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <i class="fas fa-cow fa-3x mb-3 opacity-50"></i>
+                    <p class="mb-2">Aucun animal enregistré</p>
+                    <a href="/admin/animaux/animal/add/" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Ajouter le premier animal
+                    </a>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    const rowsHtml = animaux.map(animal => `
+        <tr data-device-id="${animal.device_id}">
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="animal-marker" style="background-color: ${animal.couleur};"></div>
+                    <div>
+                        <strong>${animal.emoji} ${animal.nom}</strong>
+                    </div>
+                </div>
+            </td>
+            <td>${animal.type_animal}</td>
+            <td>${animal.race || '-'}</td>
+            <td><code>${animal.device_id}</code></td>
+            <td>
+                <span class="badge ${getStatusBadgeClass(animal.statut)}">
+                    ${animal.statut}
+                </span>
+            </td>
+            <td>${animal.nombre_positions}</td>
+            <td>${formatTimeAgo(animal.dernier_contact || animal.date_dernier_contact)}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <a href="/map/" class="btn btn-outline-primary" title="Voir sur la carte">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </a>
+                    <a href="/admin/animaux/animal/${animal.id}/change/" class="btn btn-outline-warning" title="Modifier">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    
+    tbody.innerHTML = rowsHtml;
+}
+
+function updateAnimalsStats(stats) {
+    document.getElementById('total-animals').textContent = stats.animaux_totaux || 0;
+    document.getElementById('active-animals').textContent = stats.animaux_actifs || 0;
+    document.getElementById('tbeam-devices').textContent = stats.devices_actifs || 0;
+    document.getElementById('alert-animals').textContent = stats.alertes_actives || 0;
+}
+
+// Utilitaires
+function formatTimeAgo(dateString) {
+    if (!dateString) return 'Jamais';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 1) return 'À l\'instant';
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours} h`;
+    return `Il y a ${Math.floor(diffHours / 24)} j`;
+}
+
+function getStatusBadgeClass(statut) {
+    const classes = {
+        'ACTIF': 'bg-success',
+        'INACTIF': 'bg-warning',
+        'ALERTE': 'bg-danger',
+        'HORS_ZONE': 'bg-purple'
+    };
+    return classes[statut] || 'bg-secondary';
+}
+
+// Nettoyage
+window.addEventListener('beforeunload', function() {
+    if (animalsInterval) {
+        clearInterval(animalsInterval);
+    }
+});
+</script>
+{% endblock %}

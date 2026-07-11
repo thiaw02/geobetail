@@ -1,0 +1,214 @@
+{% extends "animaux/base.html" %}
+
+{% block title %}Dashboard - GeoBétail{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4 text-white">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h1 class="display-6 mb-0">🐄 Dashboard GeoBétail</h1>
+                        <p class="mb-0 opacity-75">Surveillance en temps réel de votre bétail</p>
+                    </div>
+                    <div class="col-auto">
+                        <div class="d-flex align-items-center">
+                            <div class="loading me-2"></div>
+                            <small class="opacity-75" id="live-status">Mise à jour en temps réel</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bouton de surveillance -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <a href="{% url 'animaux:surveillance' %}" class="btn btn-primary btn-lg shadow-sm">
+                <i class="fas fa-video me-2"></i>Voir la surveillance visuelle
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card primary text-white p-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h2 class="display-4 mb-0" id="total-animals">0</h2>
+                        <small>Animaux Actifs</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-cow fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card success text-white p-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h2 class="display-4 mb-0" id="active-devices">0</h2>
+                        <small>Devices Actifs</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-satellite-dish fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card warning text-white p-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h2 class="display-4 mb-0" id="total-positions">0</h2>
+                        <small>Positions Total</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-map-marker-alt fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card danger text-white p-4">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h2 class="display-4 mb-0" id="last-update">--:--</h2>
+                        <small>Dernière MAJ</small>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-clock fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dernières données T-Beam -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="glass-card p-4 text-white">
+                <h4 class="mb-3">
+                    <i class="fas fa-satellite me-2"></i>Dernières Données T-Beam
+                    <button class="btn btn-sm btn-outline-light ms-2" onclick="refreshTBeamData()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </h4>
+                <div id="tbeam-latest-data" class="table-responsive">
+                    <div class="text-center py-3">
+                        <div class="loading mb-2"></div>
+                        <p class="mb-0 opacity-75">Chargement des données T-Beam...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Animals List -->
+        <div class="col-lg-6 mb-4">
+            <div class="glass-card p-4 text-white h-100">
+                <h4 class="mb-3">
+                    <i class="fas fa-list me-2"></i>Animaux Actifs
+                    <span class="badge bg-success ms-2" id="animals-count">0</span>
+                </h4>
+                <div id="animals-list" style="max-height: 500px; overflow-y: auto;">
+                    <div class="text-center py-5">
+                        <div class="loading mb-3"></div>
+                        <p class="mb-0 opacity-75">Chargement des animaux...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map & Details -->
+        <div class="col-lg-6">
+            <!-- Quick Stats -->
+            <div class="glass-card p-4 text-white mb-4">
+                <h4 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>Statistiques Rapides
+                </h4>
+                <div id="quick-stats">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h4 mb-1" id="stats-today">0</div>
+                            <small class="opacity-75">Aujourd'hui</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h4 mb-1" id="stats-week">0</div>
+                            <small class="opacity-75">7 jours</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h4 mb-1" id="stats-month">0</div>
+                            <small class="opacity-75">30 jours</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animal Details -->
+            <div class="glass-card p-4 text-white">
+                <h4 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Détails de l'Animal
+                </h4>
+                <div id="animal-details">
+                    <div class="text-center py-4 opacity-75">
+                        <i class="fas fa-cow fa-2x mb-3"></i>
+                        <p>Sélectionnez un animal pour voir les détails</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// === JavaScript du dashboard ===
+
+// Configuration du dashboard
+const DASHBOARD_CONFIG = {
+    updateInterval: 10000,
+    apiEndpoints: {
+        dashboard_stats: '/api/dashboard/stats/',
+        animaux_actifs: '/api/animaux/actifs/',
+        tbeam_latest: '/api/tbeam/dernieres/',
+        stats: '/api/stats/'
+    }
+};
+
+let currentAnimals = [];
+let selectedAnimal = null;
+let dashboardInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+});
+
+function initializeDashboard() {
+    loadDashboardData();
+    loadActiveAnimals();
+    loadTBeamLatestData();
+
+    dashboardInterval = setInterval(() => {
+        loadDashboardData();
+        loadActiveAnimals();
+        loadTBeamLatestData();
+    }, DASHBOARD_CONFIG.updateInterval);
+}
+
+// === Fonctions de chargement (inchangées) ===
+// [Ton code JavaScript complet ici — inchangé, à partir de loadDashboardData jusqu’à showError()]
+
+window.addEventListener('beforeunload', function() {
+    if (dashboardInterval) clearInterval(dashboardInterval);
+});
+</script>
+{% endblock %}

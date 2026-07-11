@@ -1,0 +1,15 @@
+{% extends 'animaux/base.html' %}
+{% block content %}
+<div class="flex flex-col items-center justify-center py-10">
+    <h2 class="text-3xl font-bold text-center text-purple-800">
+        🎥 Surveillance Visuelle du Bétail
+    </h2>
+    <p class="text-gray-500 mb-6">Flux en direct depuis la caméra ESP32-CAM</p>
+    {% if images %}
+        <img src="{{ images.0.image.url }}" alt="Flux ESP32" class="rounded-xl shadow-2xl w-3/4 border-4 border-white">
+    {% else %}
+        <p class="text-gray-400">Aucune image disponible pour le moment.</p>
+    {% endif %}
+</div>
+<meta http-equiv="refresh" content="5">
+{% endblock %}

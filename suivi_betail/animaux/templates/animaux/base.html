@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GeoBétail - Suivi du Bétail{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color:   #f39c12;
+            --success-color:   #2ecc71;
+            --warning-color:   #3498db;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1109b1ff 0%, #4b98a2ff 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        
+        .stat-card {
+            border-radius: 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.primary { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .stat-card.success { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .stat-card.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .stat-card.danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        
+        .loading {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .animal-marker {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        .bg-purple {
+            background-color: #9b59b6 !important;
+        }
+        
+        /* Navigation */
+        .navbar-glass {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .sidebar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            min-height: calc(100vh - 76px);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* Styles pour les notifications */
+        .notification-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+
+        /* Animation de pulse pour les nouvelles données */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+
+        .new-data-pulse {
+            animation: pulse-glow 2s infinite;
+        }
+
+        /* Styles pour la carte */
+        .custom-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .marker-pulse {
+            animation: markerPulse 1s ease-in-out;
+        }
+
+        @keyframes markerPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Notifications -->
+    <div id="notification-toast" class="notification-toast toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="notification-message">
+                Notification
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{% url 'animaux:accueil' %}">
+                <i class="fas fa-cow me-2"></i>GeoBétail
+            </a>
+            
+            <!-- Indicateur de connexion -->
+            <div class="navbar-text me-3">
+                <small>
+                    <i class="fas fa-circle me-1" id="connection-status" style="color: #2ecc71;"></i>
+                    <span id="connection-text">Connecté</span>
+                </small>
+            </div>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i> Administration
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2"></i>Admin</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Déconnexion</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-2 col-md-3 sidebar p-3">
+                <nav class="nav flex-column">
+                    <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'animaux:accueil' %}">
+                        <i class="fas fa-home me-2"></i>Accueil
+                    </a>
+                    <a class="nav-link {% if 'dashboard' in request.path %}active{% endif %}" href="{% url 'animaux:dashboard' %}">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link {% if 'map' in request.path %}active{% endif %}" href="{% url 'animaux:map' %}">
+                        <i class="fas fa-map me-2"></i>Carte
+                    </a>
+                    <a class="nav-link {% if 'animaux' in request.path %}active{% endif %}" href="{% url 'animaux:animaux_list' %}">
+                        <i class="fas fa-list me-2"></i>Liste Animaux
+                    </a>
+                    <a class="nav-link" href="/admin/">
+                        <i class="fas fa-cog me-2"></i>Administration
+                    </a>
+                </nav>
+                
+                <!-- Compteur animaux sidebar -->
+                <div class="mt-4 p-3 glass-card text-white">
+                    <h6 class="mb-2"><i class="fas fa-cow me-2"></i>Animaux Actifs</h6>
+                    <div class="d-flex align-items-center">
+                        <div class="loading me-2"></div>
+                        <span id="sidebar-animals-count">0</span>
+                    </div>
+                </div>
+
+                <!-- Statut des devices T-Beam -->
+                <div class="mt-3 p-3 glass-card text-white">
+                    <h6 class="mb-2"><i class="fas fa-satellite me-2"></i>T-Beam Connectés</h6>
+                    <div id="tbeam-status">
+                        <div class="d-flex align-items-center mb-1">
+                            <div class="loading me-2"></div>
+                            <small>Chargement...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-lg-10 col-md-9 p-4">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+    // Configuration globale avec TOUTES les URLs CORRIGÉES
+    const GLOBAL_CONFIG = {
+        apiEndpoints: {
+            // Endpoints T-Beam
+            tbeam_stream: '/api/tbeam/stream/',
+            firmware: '/api/firmware/update/',
+            
+            // Endpoints frontend - CORRIGÉS
+            dashboard: '/api/dashboard/stats/',
+            dashboard_alias: '/api/stats/',
+            animaux: '/api/animaux/liste/',
+            animaux_actifs: '/api/animaux/actifs/',
+            positions: '/api/positions/recentes/',
+            tbeam_latest: '/api/tbeam/dernieres/',
+            alertes: '/api/alertes/',
+            devices: '/api/devices/',
+            zones: '/api/zones/'
+        },
+        colors: {
+            primary: '#3498db',
+            success: '#2ecc71',
+            warning: '#f39c12',
+            danger: '#e74c3c',
+            purple: '#9b59b6'
+        },
+        updateIntervals: {
+            dashboard: 10000,
+            devices: 15000,
+            connection: 5000
+        }
+    };
+
+    // Processeur de données T-Beam
+    class TBeamDataProcessor {
+        constructor() {
+            this.supportedFormats = ['json', 'csv', 'lorawan', 'custom_binary'];
+            this.lastDataCount = 0;
+        }
+
+        // Traitement des données T-Beam entrantes
+        async processIncomingData(rawData) {
+            try {
+                console.log('🎯 Données T-Beam reçues:', rawData);
+                
+                let parsedData = this.parseData(rawData);
+                
+                if (this.validateData(parsedData)) {
+                    const savedData = await this.saveToDatabase(parsedData);
+                    this.showUINotification(parsedData);
+                    this.triggerDataUpdate();
+                    return true;
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur traitement T-Beam:', error);
+                this.showNotification('Erreur traitement données T-Beam', 'error');
+            }
+            return false;
+        }
+
+        // Analyse multi-format des données
+        parseData(rawData) {
+            // JSON
+            if (typeof rawData === 'string' && rawData.trim().startsWith('{')) {
+                try { return JSON.parse(rawData); } catch (e) {}
+            }
+            
+            // CSV (device_id,lat,lon,battery,timestamp)
+            if (typeof rawData === 'string' && rawData.includes(',')) {
+                const parts = rawData.split(',');
+                if (parts.length >= 3) {
+                    return {
+                        device_id: parts[0].trim(),
+                        latitude: parseFloat(parts[1]),
+                        longitude: parseFloat(parts[2]),
+                        batterie: parts[3] ? parseFloat(parts[3]) : null,
+                        timestamp: parts[4] || new Date().toISOString()
+                    };
+                }
+            }
+            
+            // Objet direct
+            if (typeof rawData === 'object') {
+                return {
+                    device_id: rawData.device_id || rawData.deviceId || rawData.id,
+                    latitude: parseFloat(rawData.latitude || rawData.lat),
+                    longitude: parseFloat(rawData.longitude || rawData.lng || rawData.lon),
+                    batterie: rawData.batterie || rawData.battery || rawData.bat,
+                    satellites: rawData.satellites || rawData.sats,
+                    timestamp: rawData.timestamp || rawData.time || new Date().toISOString()
+                };
+            }
+            
+            throw new Error('Format non supporté');
+        }
+
+        // Validation des données
+        validateData(data) {
+            const required = ['device_id', 'latitude', 'longitude'];
+            const isValid = required.every(field => 
+                data[field] !== undefined && data[field] !== null
+            );
+            
+            if (!isValid) {
+                console.warn('⚠️ Données T-Beam invalides:', data);
+            }
+            
+            return isValid;
+        }
+
+        // Sauvegarde des données via l'endpoint T-Beam
+        async saveToDatabase(data) {
+            try {
+                const response = await fetch(GLOBAL_CONFIG.apiEndpoints.tbeam_stream, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Erreur sauvegarde');
+                return await response.json();
+                
+            } catch (error) {
+                console.error('❌ Erreur sauvegarde T-Beam:', error);
+                throw error;
+            }
+        }
+
+        // Notification UI
+        showUINotification(data) {
+            const message = `📡 ${data.device_id}: ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
+            this.showNotification(message, 'success');
+            
+            // Effet visuel sur les éléments concernés
+            this.highlightNewData(data.device_id);
+        }
+
+        // Surligner les nouvelles données
+        highlightNewData(deviceId) {
+            const elements = document.querySelectorAll(`[data-device-id="${deviceId}"]`);
+            elements.forEach(el => {
+                el.classList.add('new-data-pulse');
+                setTimeout(() => el.classList.remove('new-data-pulse'), 3000);
+            });
+        }
+
+        // Déclencher la mise à jour des données
+        triggerDataUpdate() {
+            this.refreshGlobalData();
+            
+            if (typeof window.refreshDashboard === 'function') {
+                window.refreshDashboard();
+            }
+            if (typeof window.refreshMap === 'function') {
+                window.refreshMap();
+            }
+        }
+
+        // Rafraîchissement des données globales
+        async refreshGlobalData() {
+            try {
+                const [animauxRes, devicesRes] = await Promise.all([
+                    fetch(GLOBAL_CONFIG.apiEndpoints.animaux_actifs),
+                    fetch(GLOBAL_CONFIG.apiEndpoints.devices)
+                ]);
+
+                if (animauxRes.ok) {
+                    const animauxData = await animauxRes.json();
+                    updateSidebarAnimalsCount(animauxData.count || (animauxData.animaux ? animauxData.animaux.length : 0));
+                }
+
+                if (devicesRes.ok) {
+                    const devicesData = await devicesRes.json();
+                    this.updateTBeamStatus(devicesData.devices || []);
+                }
+
+            } catch (error) {
+                console.error('❌ Erreur rafraîchissement données:', error);
+            }
+        }
+
+        // Mettre à jour le statut T-Beam dans la sidebar
+        updateTBeamStatus(devices) {
+            const container = document.getElementById('tbeam-status');
+            if (!container) return;
+
+            const onlineDevices = devices.filter(d => 
+                d.statut === 'ACTIF' || 
+                (d.date_dernier_contact && new Date() - new Date(d.date_dernier_contact) < 3600000)
+            ).length;
+
+            const totalDevices = devices.length;
+
+            container.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small>Connectés:</small>
+                    <span class="badge ${onlineDevices > 0 ? 'bg-success' : 'bg-warning'}">
+                        ${onlineDevices}/${totalDevices}
+                    </span>
+                </div>
+                <div class="mt-2">
+                    <small class="opacity-75">MAJ: ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</small>
+                </div>
+            `;
+        }
+
+        // Affichage des notifications toast
+        showNotification(message, type = 'info') {
+            const toastEl = document.getElementById('notification-toast');
+            const messageEl = document.getElementById('notification-message');
+            
+            if (!toastEl || !messageEl) return;
+
+            const typeColors = {
+                success: 'bg-success',
+                error: 'bg-danger',
+                warning: 'bg-warning',
+                info: 'bg-primary'
+            };
+
+            toastEl.className = `notification-toast toast align-items-center text-white ${typeColors[type] || 'bg-primary'} border-0`;
+            messageEl.textContent = message;
+
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+    }
+
+    // Initialisation globale
+    document.addEventListener('DOMContentLoaded', function() {
+        window.tbeamProcessor = new TBeamDataProcessor();
+        
+        setInterval(checkConnectionStatus, GLOBAL_CONFIG.updateIntervals.connection);
+        
+        setTimeout(() => {
+            window.tbeamProcessor.refreshGlobalData();
+        }, 1000);
+    });
+
+    // Fonctions globales
+    function updateSidebarAnimalsCount(count) {
+        const element = document.getElementById('sidebar-animals-count');
+        if (element) {
+            element.textContent = count;
+        }
+    }
+
+    async function checkConnectionStatus() {
+        try {
+            const response = await fetch(GLOBAL_CONFIG.apiEndpoints.dashboard, { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            });
+            updateConnectionStatus(response.ok);
+        } catch (error) {
+            updateConnectionStatus(false);
+        }
+    }
+
+    function updateConnectionStatus(connected) {
+        const statusIcon = document.getElementById('connection-status');
+        const statusText = document.getElementById('connection-text');
+        
+        if (statusIcon && statusText) {
+            if (connected) {
+                statusIcon.style.color = GLOBAL_CONFIG.colors.success;
+                statusText.textContent = 'Connecté';
+            } else {
+                statusIcon.style.color = GLOBAL_CONFIG.colors.danger;
+                statusText.textContent = 'Déconnecté';
+            }
+        }
+    }
+
+    // Gestion des erreurs globales
+    window.addEventListener('error', function(e) {
+        console.error('🚨 Erreur globale:', e.error);
+    });
+
+    // Simulation de données T-Beam pour les tests
+    function simulateTBeamData() {
+        const devices = ['TBEAM_001', 'TBEAM_002', 'TBEAM_003'];
+        const deviceId = devices[Math.floor(Math.random() * devices.length)];
+        
+        const testData = {
+            device_id: deviceId,
+            latitude: 14.6937 + (Math.random() - 0.5) * 0.01,
+            longitude: -17.44406 + (Math.random() - 0.5) * 0.01,
+            batterie: Math.floor(Math.random() * 100),
+            satellites: 5 + Math.floor(Math.random() * 10),
+            timestamp: new Date().toISOString()
+        };
+
+        if (window.tbeamProcessor) {
+            window.tbeamProcessor.processIncomingData(testData);
+        }
+    }
+
+    // Décommenter pour tester la réception de données
+    // setInterval(simulateTBeamData, 15000);
+    </script>
+</body>
+</html>

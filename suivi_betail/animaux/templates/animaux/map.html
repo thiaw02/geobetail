@@ -1,0 +1,396 @@
+{% extends "animaux/base.html" %}
+
+{% block title %}Carte des Animaux - Suivi en Temps Réel{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="text-center mb-3 text-white">📍 Localisation en Temps Réel des Animaux</h2>
+
+    <!-- Indicateur de statut -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="glass-card p-3 text-white text-center">
+                <div class="d-flex justify-content-center align-items-center">
+                    <div id="connection-indicator" class="loading me-2"></div>
+                    <span id="connection-text">Connexion au serveur...</span>
+                    <span id="data-count" class="badge bg-success ms-2">0 données</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map" style="height: 70vh; width: 100%; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.2);"></div>
+
+    <div class="text-center mt-3">
+        <button class="btn btn-outline-success me-2" onclick="startAutoFollow()">🔁 Suivre automatiquement</button>
+        <button class="btn btn-outline-primary me-2" onclick="showAllAnimals()">👁️ Voir tous les animaux</button>
+        <button class="btn btn-outline-warning me-2" onclick="toggleRoutes()">🔄 Afficher/Masquer les trajets</button>
+        <button class="btn btn-outline-danger" onclick="stopFollow()">🛑 Arrêter le suivi</button>
+        <button class="btn btn-outline-info ms-2" onclick="refreshMapData()">🔄 Actualiser</button>
+    </div>
+
+    <!-- Panneau d'informations -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="glass-card p-3 text-white">
+                <h5>📊 Dernières Données Reçues</h5>
+                <div id="realtime-info" class="small">
+                    En attente des données...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map;
+let deviceMarkers = {};
+let animalRoutes = {};
+let FOLLOW_DEVICE_ID = null;
+let dataCount = 0;
+let showRoutes = true;
+let refreshInterval;
+
+// ✅ Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("🗺️ Initialisation de la carte...");
+    
+    // Centrer sur le Sénégal par défaut
+    map = L.map('map').setView([14.6937, -17.44406], 10);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Charger les positions initiales
+    loadMapData();
+    
+    // Démarrer l'actualisation automatique
+    startAutoRefresh();
+});
+
+// ✅ Chargement des données de la carte
+async function loadMapData() {
+    try {
+        console.log("📡 Chargement des données...");
+        updateConnectionStatus('Chargement des données...', 'warning');
+        
+        const [positionsRes, animauxRes] = await Promise.all([
+            fetch('/api/positions/recentes/?limit=100'),
+            fetch('/api/animaux/actifs/')
+        ]);
+        
+        const positionsData = await positionsRes.json();
+        const animauxData = await animauxRes.json();
+        
+        if (positionsData.status === 'success') {
+            console.log(`📊 ${positionsData.data.length} positions chargées`);
+            positionsData.data.forEach(position => {
+                updateOrCreateMarker(
+                    position.device_id, 
+                    position.latitude, 
+                    position.longitude, 
+                    position
+                );
+                addToRoute(position.device_id, position.latitude, position.longitude);
+            });
+            updateDataCount(positionsData.data.length);
+        }
+        
+        if (animauxData.status === 'success') {
+            console.log(`🐮 ${animauxData.animaux.length} animaux actifs`);
+            updateRealtimeInfo(animauxData.animaux);
+        }
+        
+        updateConnectionStatus('Données chargées', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erreur chargement données:', error);
+        updateConnectionStatus('Erreur de connexion', 'danger');
+    }
+}
+
+// ✅ Création ou mise à jour d'un marqueur
+function updateOrCreateMarker(device_id, lat, lon, payload) {
+    if (!lat || !lon) return;
+
+    const latlng = [parseFloat(lat), parseFloat(lon)];
+    const animalName = payload.animal_nom || `Animal ${device_id}`;
+
+    if (deviceMarkers[device_id]) {
+        // Mise à jour du marqueur existant
+        deviceMarkers[device_id].setLatLng(latlng);
+        deviceMarkers[device_id].getPopup().setContent(renderPopup(device_id, payload));
+        
+        // Animation de mise à jour
+        deviceMarkers[device_id]._icon.classList.add('marker-pulse');
+        setTimeout(() => {
+            if (deviceMarkers[device_id]._icon) {
+                deviceMarkers[device_id]._icon.classList.remove('marker-pulse');
+            }
+        }, 1000);
+    } else {
+        // Création d'un nouveau marqueur
+        const marker = L.marker(latlng, {
+            title: animalName,
+            icon: createCustomIcon(device_id)
+        });
+        
+        marker.bindPopup(renderPopup(device_id, payload));
+        marker.addTo(map);
+        deviceMarkers[device_id] = marker;
+        
+        console.log(`📍 Nouveau marqueur créé: ${animalName}`);
+    }
+
+    // Suivi de l'appareil sélectionné
+    if (FOLLOW_DEVICE_ID === device_id) {
+        map.setView(latlng, 15, { animate: true });
+        deviceMarkers[device_id].openPopup();
+    }
+}
+
+// ✅ Création d'icône personnalisée
+function createCustomIcon(device_id) {
+    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
+    const color = colors[device_id.charCodeAt(0) % colors.length];
+    
+    return L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="
+            background: ${color};
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        "></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+    });
+}
+
+// ✅ Gestion des trajets
+function addToRoute(device_id, lat, lon) {
+    if (!showRoutes) return;
+    
+    if (!animalRoutes[device_id]) {
+        animalRoutes[device_id] = L.polyline([], {
+            color: getRouteColor(device_id),
+            weight: 4,
+            opacity: 0.7
+        }).addTo(map);
+    }
+    
+    const latlng = [parseFloat(lat), parseFloat(lon)];
+    animalRoutes[device_id].addLatLng(latlng);
+}
+
+// ✅ Basculer l'affichage des trajets
+function toggleRoutes() {
+    showRoutes = !showRoutes;
+    
+    Object.values(animalRoutes).forEach(route => {
+        if (showRoutes) {
+            map.addLayer(route);
+        } else {
+            map.removeLayer(route);
+        }
+    });
+    
+    showNotification(showRoutes ? '🔄 Trajets affichés' : '🔄 Trajets masqués', 'info');
+}
+
+// ✅ Couleur des trajets
+function getRouteColor(device_id) {
+    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
+    return colors[device_id.charCodeAt(0) % colors.length];
+}
+
+// ✅ Popup d'information
+function renderPopup(device_id, data) {
+    const nom = data.animal_nom || `Animal ${device_id}`;
+    const batt = data.batterie ? data.batterie + "%" : "N/A";
+    const date = new Date(data.timestamp || Date.now()).toLocaleString('fr-FR');
+    const sats = data.satellites || 'N/A';
+    const accuracy = data.accuracy ? data.accuracy.toFixed(1) + 'm' : 'N/A';
+
+    return `
+        <div style="min-width: 200px;">
+            <strong>${nom}</strong><br>
+            <small>ID: ${device_id}</small><br>
+            <hr style="margin: 5px 0;">
+            🌍 ${parseFloat(data.latitude).toFixed(6)}, ${parseFloat(data.longitude).toFixed(6)}<br>
+            📡 Précision: ${accuracy}<br>
+            🛰️ Satellites: ${sats}<br>
+            🔋 Batterie: ${batt}<br>
+            🕒 ${date}<br>
+            <hr style="margin: 5px 0;">
+            <button onclick="followDevice('${device_id}')" class="btn btn-sm btn-primary w-100 mb-1">
+                👁️ Suivre
+            </button>
+        </div>
+    `;
+}
+
+// ✅ Mise à jour des informations
+function updateRealtimeInfo(animaux) {
+    const infoDiv = document.getElementById('realtime-info');
+    
+    if (!animaux || animaux.length === 0) {
+        infoDiv.innerHTML = 'Aucun animal actif';
+        return;
+    }
+    
+    const dernierAnimal = animaux[0];
+    const date = new Date().toLocaleString('fr-FR');
+    
+    infoDiv.innerHTML = `
+        <div class="row">
+            <div class="col-md-4">
+                <strong>Dernier animal:</strong> ${dernierAnimal.nom}
+            </div>
+            <div class="col-md-4">
+                <strong>Positions chargées:</strong> ${dataCount}
+            </div>
+            <div class="col-md-4">
+                <strong>Dernière MAJ:</strong> ${date}
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-12">
+                <strong>Animaux actifs:</strong> ${animaux.length}
+                ${animaux.slice(0, 3).map(animal => `
+                    <span class="badge bg-success me-1">${animal.nom}</span>
+                `).join('')}
+                ${animaux.length > 3 ? `<span class="badge bg-secondary">+${animaux.length - 3}</span>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// ✅ Suivi d'un appareil spécifique
+function followDevice(device_id) {
+    FOLLOW_DEVICE_ID = device_id;
+    const marker = deviceMarkers[device_id];
+    if (marker) {
+        map.setView(marker.getLatLng(), 15, { animate: true });
+        marker.openPopup();
+    }
+    showNotification(`👁️ Suivi de ${device_id}`, 'info');
+}
+
+// ✅ Suivi automatique du dernier animal
+function startAutoFollow() {
+    FOLLOW_DEVICE_ID = "__AUTO__";
+    showNotification("🔁 Suivi automatique activé", 'info');
+}
+
+// ✅ Voir tous les animaux
+function showAllAnimals() {
+    FOLLOW_DEVICE_ID = null;
+    
+    const markers = Object.values(deviceMarkers);
+    if (markers.length > 0) {
+        const group = new L.featureGroup(markers);
+        map.fitBounds(group.getBounds(), { padding: [20, 20] });
+    }
+    
+    showNotification("👁️ Vue de tous les animaux", 'info');
+}
+
+// ✅ Arrêter le suivi
+function stopFollow() {
+    FOLLOW_DEVICE_ID = null;
+    showNotification("🛑 Suivi désactivé", 'warning');
+}
+
+// ✅ Actualiser les données
+function refreshMapData() {
+    loadMapData();
+    showNotification("🔄 Données actualisées", 'info');
+}
+
+// ✅ Actualisation automatique
+function startAutoRefresh() {
+    refreshInterval = setInterval(loadMapData, 15000); // Toutes les 15 secondes
+}
+
+// ✅ Mise à jour du statut de connexion
+function updateConnectionStatus(message, type) {
+    const indicator = document.getElementById('connection-indicator');
+    const text = document.getElementById('connection-text');
+    
+    if (indicator && text) {
+        text.textContent = message;
+        
+        const colors = {
+            'success': '#2ecc71',
+            'warning': '#f39c12', 
+            'danger': '#e74c3c'
+        };
+        
+        indicator.style.borderTopColor = colors[type] || '#ffffff';
+    }
+}
+
+// ✅ Mise à jour du compteur de données
+function updateDataCount(count) {
+    dataCount = count;
+    const counter = document.getElementById('data-count');
+    if (counter) {
+        counter.textContent = `${count} positions`;
+    }
+}
+
+// ✅ Notification
+function showNotification(message, type = 'info') {
+    if (window.tbeamProcessor) {
+        window.tbeamProcessor.showNotification(message, type);
+    } else {
+        // Fallback simple
+        const toast = document.getElementById('notification-toast');
+        const messageEl = document.getElementById('notification-message');
+        if (toast && messageEl) {
+            messageEl.textContent = message;
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    }
+}
+
+// ✅ Rafraîchissement global
+window.refreshMap = function() {
+    refreshMapData();
+};
+
+// ✅ Nettoyage
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+</script>
+
+<style>
+.custom-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.marker-pulse {
+    animation: markerPulse 1s ease-in-out;
+}
+
+@keyframes markerPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}
