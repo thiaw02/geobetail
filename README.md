@@ -49,6 +49,20 @@ projetgeobetail/
 - Python 3.11+ (testé avec Python 3.14)
 - pip
 
+## Démarrage rapide
+
+Pour lancer le projet minimalement (sans venv) :
+
+```bash
+cd suivi_betail
+pip install Django djangorestframework django-cors-headers channels daphne python-decouple paho-mqtt
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
+```
+
+Le site sera accessible sur `http://127.0.0.1:8000/`.
+Pour une installation propre et isolée (venv), voir la section **Installation** ci-dessous.
+
 ## Installation
 
 1. Cloner le dépôt puis se placer dans le dossier du projet Django :
@@ -65,7 +79,14 @@ projetgeobetail/
    # source venv/bin/activate   # Linux / macOS
    ```
 
-3. Installer les dépendances :
+   > **Environnement virtuel : obligatoire ou non ?**
+   > L'activation d'un venv **n'est pas obligatoire** pour lancer le projet.
+   > Les dépendances peuvent être installées globalement et `python manage.py runserver`
+   > fonctionnera directement. Un venv est **recommandé** pour isoler les
+   > dépendances du projet des autres projets Python de la machine et éviter les
+   > conflits de versions.
+
+3. Installer les dépendances **(dans le venv activé, ou globalement)** :
 
    ```bash
    pip install Django djangorestframework django-cors-headers \
