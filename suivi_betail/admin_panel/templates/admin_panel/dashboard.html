@@ -1,0 +1,143 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Tableau de bord - Gestion GeoBétail{% endblock %}
+{% block page_title %}Espace de gestion{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Tableau de bord</h2>
+        <p>Vue d'ensemble de la plateforme GeoBétail</p>
+    </div>
+</div>
+
+<!-- Statistiques principales -->
+<div class="stat-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-icon bg-forest"><i class="fas fa-users"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.users_total }}</div>
+            <div class="stat-label">Utilisateurs</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-gold"><i class="fas fa-satellite"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.devices_total }}</div>
+            <div class="stat-label">Colliers</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-danger"><i class="fas fa-bell"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.alertes_actives }}</div>
+            <div class="stat-label">Alertes actives</div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques secondaires -->
+<div class="stat-grid mb-4">
+    <div class="stat-card">
+        <div class="stat-icon bg-info"><i class="fas fa-user-check"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.users_active }}</div>
+            <div class="stat-label">Comptes actifs</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-info"><i class="fas fa-user-shield"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.users_staff }}</div>
+            <div class="stat-label">Personnel (staff)</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-gold"><i class="fas fa-link"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.devices_paired }}</div>
+            <div class="stat-label">Colliers appairés</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Utilisateurs récents -->
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="card-title"><i class="fas fa-user-plus me-2"></i>Derniers inscrits</span>
+                <a href="{% url 'admin_panel:user_list' %}" class="btn btn-ghost btn-sm">Tout voir</a>
+            </div>
+            <div class="card-body">
+                {% if recent_users %}
+                <table class="admin-table">
+                    <tbody>
+                        {% for u in recent_users %}
+                        <tr>
+                            <td>
+                                <strong>{{ u.username }}</strong><br>
+                                <span class="text-muted small">{{ u.email|default:"—" }}</span>
+                            </td>
+                            <td class="text-end">
+                                {% if u.is_superuser %}
+                                    <span class="badge badge-danger">Admin</span>
+                                {% elif u.is_staff %}
+                                    <span class="badge badge-info">Staff</span>
+                                {% else %}
+                                    <span class="badge badge-muted">Éleveur</span>
+                                {% endif %}
+                                <div class="text-muted small mt-1">{{ u.date_joined|date:"d/m/Y" }}</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">Aucun utilisateur.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes récentes -->
+    <div class="col-12 col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span class="card-title"><i class="fas fa-triangle-exclamation me-2"></i>Alertes non résolues</span>
+                <a href="{% url 'admin_panel:alerte_list' %}" class="btn btn-ghost btn-sm">Tout voir</a>
+            </div>
+            <div class="card-body">
+                {% if recent_alertes %}
+                <table class="admin-table">
+                    <tbody>
+                        {% for a in recent_alertes %}
+                        <tr>
+                            <td>
+                                <strong>{{ a.animal.nom }}</strong><br>
+                                <span class="text-muted small">{{ a.get_type_alerte_display }}</span>
+                            </td>
+                            <td class="text-end">
+                                {% if a.priorite == 'URGENT' %}
+                                    <span class="badge badge-danger">Urgente</span>
+                                {% elif a.priorite == 'HIGH' %}
+                                    <span class="badge badge-warning">Haute</span>
+                                {% elif a.priorite == 'MEDIUM' %}
+                                    <span class="badge badge-info">Moyenne</span>
+                                {% else %}
+                                    <span class="badge badge-muted">Basse</span>
+                                {% endif %}
+                                <div class="text-muted small mt-1">{{ a.date_creation|date:"d/m/Y H:i" }}</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted mb-0">Aucune alerte active. Tout va bien !</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

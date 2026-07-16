@@ -7,7 +7,7 @@ import django
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
-from animaux.models import Animal, Position, Zone
+from animaux.models import Animal, Position, Zone, Device
 
 
 class Command(BaseCommand):
@@ -16,14 +16,29 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write('Création des données de test...')
         
-        # Créer un superutilisateur si inexistant
+        # Créer un superutilisateur Django si inexistant
         if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser(
+            admin_user = User.objects.create_superuser(
                 username='admin',
                 email='admin@geobetail.com',
                 password='admin123'
             )
-            self.stdout.write('Superutilisateur créé: admin/admin123')
+            admin_user.profile.role = 'ADMIN'
+            admin_user.profile.save()
+            self.stdout.write('Superutilisateur Django créé: admin/admin123 (accès /admin/)')
+        
+        # Créer un compte superviseur admin_panel si inexistant
+        if not User.objects.filter(username='superviseur').exists():
+            superv = User.objects.create_user(
+                username='superviseur',
+                email='superviseur@geobetail.com',
+                password='superviseur123',
+                is_staff=True,
+                is_superuser=False,
+            )
+            superv.profile.role = 'ADMIN'
+            superv.profile.save()
+            self.stdout.write('Superviseur admin_panel créé: superviseur/superviseur123 (accès /admin_panel/)')
         
         # Créer un utilisateur test
         user, created = User.objects.get_or_create(
@@ -43,52 +58,65 @@ class Command(BaseCommand):
             nom='Pâturage Principal',
             defaults={
                 'description': 'Zone principale de pâturage',
-                'polygon_coords': '[[46.5, 2.0], [46.6, 2.1], [46.7, 2.0], [46.6, 1.9]]'
+                'polygone': '[[14.6, -17.5], [14.7, -17.4], [14.75, -17.45], [14.65, -17.55]]',
+                'type_zone': 'PATURAGE',
+                'couleur': '#2E7D4F'
             }
         )
         
         # Données des animaux
         animaux_data = [
-            {'identifiant': 'VACHE001', 'nom': 'Bella', 'espece': 'VACHE', 'sexe': 'F'},
-            {'identifiant': 'VACHE002', 'nom': 'Luna', 'espece': 'VACHE', 'sexe': 'F'},
-            {'identifiant': 'MOUTON001', 'nom': 'Bouc', 'espece': 'MOUTON', 'sexe': 'M'},
-            {'identifiant': 'CHEVRE001', 'nom': 'Biquette', 'espece': 'CHEVRE', 'sexe': 'F'},
-            {'identifiant': 'CHEVAL001', 'nom': 'Spirit', 'espece': 'CHEVAL', 'sexe': 'M'},
+            {'nom': 'Bella', 'type_animal': 'VACHE', 'race': 'Gobra', 'emoji': 'fa-paw', 'couleur': '#2E7D4F'},
+            {'nom': 'Luna', 'type_animal': 'VACHE', 'race': 'NDama', 'emoji': 'fa-paw', 'couleur': '#C9A227'},
+            {'nom': 'Bouc', 'type_animal': 'BREBIS', 'race': 'Peul', 'emoji': 'fa-paw', 'couleur': '#6B8E7B'},
+            {'nom': 'Biquette', 'type_animal': 'CHEVRE', 'race': 'Métisse', 'emoji': 'fa-paw', 'couleur': '#B83B2B'},
+            {'nom': 'Spirit', 'type_animal': 'CHEVAL', 'race': 'Barbe', 'emoji': 'fa-horse', 'couleur': '#1B3B2F'},
         ]
         
         for data in animaux_data:
-            animal, created = Animal.objects.get_or_create(
-                identifiant=data['identifiant'],
+            # Créer un device pour chaque animal
+            device, device_created = Device.objects.get_or_create(
+                device_id=f"TBEAM_{data['nom'].upper()}",
                 defaults={
-                    'nom': data['nom'],
-                    'espece': data['espece'],
-                    'sexe': data['sexe'],
-                    'proprietaire': user,
-                    'zone_autorisee': zone,
-                    'actif': True,
-                    'date_naissance': datetime.now() - timedelta(days=random.randint(365, 2000))
+                    'nom': f"Device {data['nom']}",
+                    'type_device': 'TBEAM',
+                    'statut': 'ACTIF',
+                    'batterie': random.uniform(40, 100),
+                }
+            )
+            
+            animal, created = Animal.objects.get_or_create(
+                nom=data['nom'],
+                defaults={
+                    'type_animal': data['type_animal'],
+                    'race': data['race'],
+                    'device': device,
+                    'statut': 'ACTIF',
+                    'emoji': data['emoji'],
+                    'couleur': data['couleur'],
                 }
             )
             
             if created:
-                self.stdout.write(f'Animal créé: {animal.identifiant}')
+                self.stdout.write(f'Animal créé: {animal.nom}')
             
             # Créer 3-5 positions récentes pour chaque animal
+            base_lat = 14.6937
+            base_lon = -17.44406
+            
             for i in range(random.randint(3, 5)):
-                # Coordonnées autour du centre de la France avec variation
-                lat = 46.5 + random.uniform(-0.2, 0.2)
-                lon = 2.0 + random.uniform(-0.2, 0.2)
+                lat = base_lat + random.uniform(-0.1, 0.1)
+                lon = base_lon + random.uniform(-0.1, 0.1)
                 
                 Position.objects.create(
                     animal=animal,
                     latitude=lat,
                     longitude=lon,
-                    altitude=random.uniform(200, 500),
+                    altitude=random.uniform(10, 50),
                     satellites=random.randint(5, 12),
-                    batterie=random.randint(30, 100),
-                    vitesse=random.uniform(0, 5),
-                    precision=random.uniform(1, 10),
-                    force_signal=random.randint(-90, -60),
+                    batterie=random.uniform(30, 100),
+                    accuracy=random.uniform(1, 10),
+                    speed=random.uniform(0, 5),
                     timestamp=datetime.now() - timedelta(hours=random.randint(1, 24))
                 )
         
@@ -97,4 +125,4 @@ class Command(BaseCommand):
         self.stdout.write('Positions créées: ~20')
         self.stdout.write('\nAccès:')
         self.stdout.write('- Admin: http://127.0.0.1:8000/admin/ (admin/admin123)')
-        self.stdout.write('- Carte Live: http://127.0.0.1:8000/map/')
+        self.stdout.write('- Carte Live: http://127.0.0.1:8000/carte/')

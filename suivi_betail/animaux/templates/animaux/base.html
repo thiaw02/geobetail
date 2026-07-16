@@ -1,548 +1,707 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1B3B2F">
+    <meta name="description" content="{% block meta_description %}GeoBétail - Plateforme de suivi et surveillance de bétail par GPS/LoRa{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}suivi bétail, GPS, LoRa, T-Beam, Meshtastic, élevage, Sénégal, Afrique{% endblock %}">
+    <meta name="author" content="GeoBétail">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="{% block og_title %}GeoBétail - Suivi intelligent du bétail{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Surveillez votre troupeau en temps réel avec notre technologie GPS/LoRa{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:image" content="{% static 'img/logo1.png' %}">
+    <meta property="og:locale" content="fr_FR">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}GeoBétail{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Suivi GPS/LoRA pour votre bétail{% endblock %}">
+    <meta name="twitter:image" content="{% static 'img/logo1.png' %}">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'img/logo1.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/logo1.png' %}">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+
     <title>{% block title %}GeoBétail - Suivi du Bétail{% endblock %}</title>
-    
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+
     <style>
-        :root {
-            --primary-color:   #f39c12;
-            --success-color:   #2ecc71;
-            --warning-color:   #3498db;
-            --danger-color: #e74c3c;
-        }
-        
+        /* ---------- Base ---------- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: linear-gradient(135deg, #1109b1ff 0%, #4b98a2ff 100%);
+            background-color: var(--color-bg-cream);
+            color: var(--color-text-primary);
+            font-family: var(--font-family-body);
+            font-size: var(--font-size-base);
+            line-height: var(--line-height-normal);
             min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-        }
-        
-        .stat-card {
-            border-radius: 15px;
-            transition: transform 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-card.primary { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .stat-card.success { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-        .stat-card.warning { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .stat-card.danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        
-        .loading {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .animal-marker {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        
-        .cursor-pointer {
-            cursor: pointer;
-        }
-        
-        .transition-all {
-            transition: all 0.3s ease;
-        }
-        
-        .bg-purple {
-            background-color: #9b59b6 !important;
-        }
-        
-        /* Navigation */
-        .navbar-glass {
-            background: rgba(255, 255, 255, 0.1) !important;
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
+
+        /* ---------- Layout ---------- */
+        .app-wrapper { display: flex; min-height: 100vh; }
+
         .sidebar {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
-            min-height: calc(100vh - 76px);
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            border-radius: 10px;
-            margin: 5px 0;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar .nav-link:hover,
-        .sidebar .nav-link.active {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+            width: var(--sidebar-width);
+            background: var(--color-bg-white);
+            border-right: 1px solid var(--color-border-default);
+            position: fixed; top: 0; left: 0;
+            height: 100vh; z-index: 1030;
+            display: flex; flex-direction: column;
         }
 
-        /* Styles pour les notifications */
-        .notification-toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            min-width: 300px;
+        .sidebar-brand {
+            padding: var(--space-6);
+            border-bottom: 1px solid var(--color-border-light);
+            display: flex; align-items: center; gap: var(--space-3);
         }
 
-        /* Animation de pulse pour les nouvelles données */
-        @keyframes pulse-glow {
-            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        .sidebar-brand-icon {
+            width: 40px; height: 40px;
+            background: var(--color-primary-forest);
+            border-radius: var(--radius-lg);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--color-accent-gold);
+            font-size: var(--font-size-xl);
+            overflow: hidden;
+        }
+        .sidebar-brand-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+        .sidebar-brand-text {
+            font-family: var(--font-family-heading);
+            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-lg);
+            color: var(--color-primary-forest);
         }
 
-        .new-data-pulse {
-            animation: pulse-glow 2s infinite;
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: var(--space-4); }
+
+        .sidebar-section { margin-bottom: var(--space-6); }
+
+        .sidebar-section-title {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-text-muted);
+            padding: var(--space-2) var(--space-3);
+            margin-bottom: var(--space-1);
         }
 
-        /* Styles pour la carte */
-        .custom-marker {
-            background: transparent !important;
-            border: none !important;
+        .sidebar-link {
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-lg);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            font-weight: var(--font-weight-medium);
+            font-size: var(--font-size-sm);
+            transition: all var(--transition-fast);
+            margin-bottom: var(--space-1);
+        }
+        .sidebar-link:hover { background: var(--color-bg-earth); color: var(--color-primary-forest); }
+        .sidebar-link.active { background: var(--color-primary-forest); color: var(--color-text-inverse); }
+        .sidebar-link i { width: 20px; text-align: center; font-size: var(--font-size-base); }
+
+        .sidebar-footer { padding: var(--space-4); border-top: 1px solid var(--color-border-light); }
+
+        .main-content {
+            flex: 1; margin-left: var(--sidebar-width);
+            min-height: 100vh; display: flex; flex-direction: column;
         }
 
-        .marker-pulse {
-            animation: markerPulse 1s ease-in-out;
+        .topbar {
+            height: var(--navbar-height);
+            background: var(--color-bg-white);
+            border-bottom: 1px solid var(--color-border-default);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 var(--space-6);
+            position: sticky; top: 0; z-index: 1020;
+        }
+        .topbar-left { display: flex; align-items: center; gap: var(--space-4); }
+        .topbar-title {
+            font-family: var(--font-family-heading);
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-lg);
+            color: var(--color-text-primary);
+        }
+        .topbar-right { display: flex; align-items: center; gap: var(--space-4); }
+
+        .topbar-alertes-btn {
+            display: inline-flex; align-items: center; gap: var(--space-2);
+            padding: var(--space-2) var(--space-4); border-radius: var(--radius-full);
+            background: transparent; border: 1px solid var(--color-border-light);
+            color: var(--color-text-secondary); text-decoration: none;
+            font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+            transition: all var(--transition-fast);
+        }
+        .topbar-alertes-btn:hover { border-color: var(--color-primary-forest); color: var(--color-primary-forest); background: var(--color-bg-earth); }
+        .topbar-alertes-btn.active { background: var(--color-primary-forest); color: var(--color-text-inverse); border-color: var(--color-primary-forest); }
+
+        .connection-indicator {
+            display: flex; align-items: center; gap: var(--space-2);
+            font-size: var(--font-size-sm); color: var(--color-text-secondary);
+        }
+        .connection-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--color-success); position: relative;
+        }
+        .connection-dot::after {
+            content: ''; position: absolute; inset: -3px; border-radius: 50%;
+            background: var(--color-success); opacity: 0.4;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1.8); opacity: 0; }
         }
 
-        @keyframes markerPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+        .content-area {
+            flex: 1; padding: var(--space-6);
+            max-width: var(--content-max-width); width: 100%; margin: 0 auto;
+            padding-bottom: calc(var(--space-10) + 76px);
         }
+
+        /* ---------- Boutons ---------- */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            padding: var(--space-3) var(--space-6);
+            border-radius: var(--radius-lg);
+            font-family: var(--font-family-heading);
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-sm); line-height: 1.5;
+            border: none; cursor: pointer;
+            transition: all var(--transition-fast); text-decoration: none;
+        }
+        .btn:focus-visible { outline: 2px solid var(--color-accent-gold); outline-offset: 2px; }
+        .btn-primary { background: var(--color-primary-forest); color: var(--color-text-inverse); }
+        .btn-primary:hover { background: var(--color-primary-forest-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-accent { background: var(--color-accent-gold); color: var(--color-primary-forest); }
+        .btn-accent:hover { background: var(--color-accent-gold-light); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-outline { background: transparent; border: 1px solid var(--color-border-default); color: var(--color-text-secondary); }
+        .btn-outline:hover { border-color: var(--color-primary-forest); color: var(--color-primary-forest); background: var(--color-bg-earth); }
+        .btn-ghost { background: transparent; color: var(--color-text-secondary); padding: var(--space-2) var(--space-3); }
+        .btn-ghost:hover { background: var(--color-bg-earth); color: var(--color-primary-forest); }
+        .btn-danger { background: var(--color-danger); color: var(--color-text-inverse); }
+        .btn-danger:hover { background: #9E3124; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn-sm { padding: var(--space-2) var(--space-4); font-size: var(--font-size-xs); }
+        .btn-lg { padding: var(--space-4) var(--space-8); font-size: var(--font-size-base); }
+
+        /* ---------- Formulaires ---------- */
+        .form-control {
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--color-border-default);
+            border-radius: var(--radius-lg);
+            font-family: var(--font-family-body);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            background: var(--color-bg-white);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .form-control:focus {
+            border-color: var(--color-primary-forest);
+            box-shadow: 0 0 0 3px rgba(27, 59, 47, 0.1); outline: none;
+        }
+        .form-label { font-weight: var(--font-weight-medium); font-size: var(--font-size-sm); color: var(--color-text-primary); margin-bottom: var(--space-2); }
+
+        /* ---------- Badges ---------- */
+        .badge { display: inline-flex; align-items: center; padding: var(--space-1) var(--space-3); border-radius: var(--radius-full); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); line-height: 1; }
+        .badge-success { background: var(--color-success-light); color: var(--color-success); }
+        .badge-warning { background: var(--color-warning-light); color: var(--color-warning); }
+        .badge-danger { background: var(--color-danger-light); color: var(--color-danger); }
+        .badge-info { background: var(--color-info-light); color: var(--color-info); }
+
+        /* ---------- Loaders ---------- */
+        .loader { width: 24px; height: 24px; border: 2px solid var(--color-border-light); border-top-color: var(--color-primary-forest); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---------- Notifications ---------- */
+        .toast-container { position: fixed; top: var(--space-6); right: var(--space-6); z-index: 9999; display: flex; flex-direction: column; gap: var(--space-3); }
+        .toast { background: var(--color-bg-white); border: 1px solid var(--color-border-light); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); padding: var(--space-4) var(--space-5); display: flex; align-items: flex-start; gap: var(--space-3); min-width: 320px; max-width: 420px; animation: toast-in 0.3s ease; }
+        @keyframes toast-in { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-success { border-left: 4px solid var(--color-success); }
+        .toast-warning { border-left: 4px solid var(--color-warning); }
+        .toast-danger { border-left: 4px solid var(--color-danger); }
+        .toast-info { border-left: 4px solid var(--color-info); }
+
+        /* ---------- Bouton profil (navbar droite, toutes tailles) ---------- */
+        .profile-btn {
+            display: flex; align-items: center; gap: var(--space-2);
+            background: transparent; border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-full); padding: 4px var(--space-3) 4px 4px;
+            cursor: pointer; color: var(--color-text-primary);
+            transition: all var(--transition-fast);
+        }
+        .profile-btn:hover { border-color: var(--color-primary-forest); background: var(--color-bg-earth); }
+        .profile-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--color-primary-forest); color: var(--color-text-inverse);
+            display: flex; align-items: center; justify-content: center;
+            font-size: var(--font-size-sm); overflow: hidden; flex-shrink: 0;
+        }
+        .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-name { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .profile-caret { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+
+        .profile-menu {
+            position: absolute; top: calc(var(--navbar-height) - 6px); right: var(--space-6);
+            width: 260px; background: var(--color-bg-white);
+            border: 1px solid var(--color-border-light); border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg); padding: var(--space-2); z-index: 1040;
+            display: none;
+        }
+        .profile-menu.open { display: block; animation: fadeIn 0.18s ease; }
+        .profile-menu-head { padding: var(--space-3); border-bottom: 1px solid var(--color-border-light); margin-bottom: var(--space-2); }
+        .profile-menu-head .pm-name { font-weight: var(--font-weight-bold); color: var(--color-text-primary); }
+        .profile-menu-head .pm-role { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+        .profile-menu a, .profile-menu button {
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-3); border-radius: var(--radius-lg);
+            color: var(--color-text-secondary); text-decoration: none;
+            font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+            width: 100%; background: transparent; border: none; cursor: pointer; text-align: left;
+        }
+        .profile-menu a:hover, .profile-menu button:hover { background: var(--color-bg-earth); color: var(--color-primary-forest); }
+        .profile-menu a i, .profile-menu button i { width: 18px; text-align: center; }
+        .profile-menu .pm-sep { height: 1px; background: var(--color-border-light); margin: var(--space-2) 0; }
+        .profile-menu .pm-danger { color: var(--color-danger); }
+
+        /* ---------- Bottom navigation (mobile/tablette) ---------- */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: 64px; background: var(--color-bg-white);
+            border-top: 1px solid var(--color-border-default);
+            display: none; align-items: stretch; justify-content: space-around;
+            z-index: 1035; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .bottom-nav-item {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 2px; color: var(--color-text-muted); text-decoration: none;
+            font-size: 0.66rem; font-weight: var(--font-weight-medium);
+            background: transparent; border: none; cursor: pointer; min-height: 44px;
+        }
+        .bottom-nav-item i { font-size: 1.15rem; }
+        .bottom-nav-item.active { color: var(--color-primary-forest); }
+
+        /* ---------- FAB Scanner (au-dessus de la bottom-nav) ---------- */
+        .scanner-fab {
+            position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%) translateY(0);
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--color-accent-gold); color: var(--color-primary-forest);
+            border: 4px solid var(--color-bg-white);
+            display: none; align-items: center; justify-content: center;
+            font-size: 1.4rem; box-shadow: var(--shadow-lg); cursor: pointer; z-index: 1036;
+            transition: transform var(--transition-fast);
+        }
+        .scanner-fab:active { transform: translateX(-50%) scale(0.94); }
+
+        /* ---------- Modal Scanner ---------- */
+        .scanner-overlay {
+            position: fixed; inset: 0; background: rgba(18, 28, 23, 0.96);
+            z-index: 2000; display: none; flex-direction: column;
+            align-items: center; justify-content: center; padding: var(--space-5);
+        }
+        .scanner-overlay.open { display: flex; }
+        .scanner-overlay .scanner-title { color: var(--color-text-inverse); font-family: var(--font-family-heading); font-weight: var(--font-weight-bold); margin-bottom: var(--space-4); text-align: center; }
+        .scanner-frame {
+            position: relative; width: min(86vw, 360px); height: min(86vw, 360px);
+            border: 3px solid var(--color-accent-gold); border-radius: var(--radius-xl);
+            overflow: hidden; background: #000;
+        }
+        .scanner-frame video { width: 100%; height: 100%; object-fit: cover; }
+        .scanner-frame.detected { border-color: var(--color-success); box-shadow: 0 0 0 4px rgba(46, 160, 96, 0.4); }
+        .scan-line {
+            position: absolute; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--color-accent-gold), transparent);
+            box-shadow: 0 0 12px var(--color-accent-gold);
+            animation: scanline 2s linear infinite;
+        }
+        @keyframes scanline {
+            0% { top: 4%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 96%; opacity: 0; }
+        }
+        .scanner-frame .scanner-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; gap: var(--space-2); }
+        .scanner-frame .scanner-placeholder i { font-size: 2.5rem; opacity: 0.6; }
+        .scanner-hint { color: rgba(255,255,255,0.8); font-size: var(--font-size-sm); margin-top: var(--space-4); text-align: center; }
+        .scanner-close { position: absolute; top: var(--space-4); right: var(--space-4); color: #fff; background: rgba(255,255,255,0.12); border: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.1rem; cursor: pointer; }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 1023px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .topbar { padding: 0 var(--space-4); }
+            .topbar-title { font-size: var(--font-size-base); }
+            .content-area { padding: var(--space-4); padding-bottom: calc(var(--space-10) + 132px); }
+            .bottom-nav { display: flex; }
+            .scanner-fab { display: flex; }
+            .profile-name { display: none; }
+            .profile-menu { right: var(--space-3); width: calc(100vw - var(--space-6)); max-width: 320px; }
+        }
+        @media (max-width: 599px) {
+            .topbar-title { display: none; }
+            .topbar-left { gap: var(--space-2); }
+            body { overflow-x: hidden; }
+        }
+        @media (min-width: 1024px) {
+            .scanner-fab, .bottom-nav { display: none !important; }
+        }
+
+        .fade-in { animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in-right { animation: slideInRight 0.3s ease; }
+        @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .empty-state { text-align: center; padding: var(--space-12) var(--space-6); color: var(--color-text-muted); }
+        .empty-state-icon { font-size: 3rem; margin-bottom: var(--space-4); opacity: 0.5; }
+        .empty-state-title { font-family: var(--font-family-heading); font-weight: var(--font-weight-semibold); font-size: var(--font-size-lg); color: var(--color-text-secondary); margin-bottom: var(--space-2); }
+
+        .table { color: var(--color-text-primary); }
+        .table thead th { font-weight: var(--font-weight-semibold); font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); background: var(--color-bg-earth); border-bottom: 1px solid var(--color-border-default); padding: var(--space-3) var(--space-4); }
+        .table tbody td { padding: var(--space-4); border-bottom: 1px solid var(--color-border-light); vertical-align: middle; }
+        .table tbody tr:hover { background: var(--color-bg-earth); }
+
+        .icon-pulse { animation: iconPulse 2s ease-in-out infinite; }
+        @keyframes iconPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--color-border-default); border-radius: var(--radius-full); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Notifications -->
-    <div id="notification-toast" class="notification-toast toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-            <div class="toast-body" id="notification-message">
-                Notification
+    <div class="app-wrapper">
+        <!-- Sidebar (desktop uniquement) -->
+        {% block sidebar %}
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-icon"><img src="{% static 'img/logo1.png' %}" alt="GeoBétail"></div>
+                <span class="sidebar-brand-text">GeoBétail</span>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    </div>
 
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{% url 'animaux:accueil' %}">
-                <i class="fas fa-cow me-2"></i>GeoBétail
-            </a>
-            
-            <!-- Indicateur de connexion -->
-            <div class="navbar-text me-3">
-                <small>
-                    <i class="fas fa-circle me-1" id="connection-status" style="color: #2ecc71;"></i>
-                    <span id="connection-text">Connecté</span>
-                </small>
-            </div>
-            
-            <div class="navbar-nav ms-auto">
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle me-1"></i> Administration
+            <nav class="sidebar-nav">
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Navigation</div>
+                    <a href="{% url 'animaux:dashboard' %}" class="sidebar-link {% if '/dashboard' in request.path %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2"></i>Admin</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt me-2"></i>Déconnexion</a></li>
-                    </ul>
+                    <a href="{% url 'animaux:map' %}" class="sidebar-link {% if 'map' in request.path %}active{% endif %}">
+                        <i class="fas fa-map"></i> Carte
+                    </a>
+                    <a href="{% url 'animaux:animaux_list' %}" class="sidebar-link {% if 'animaux' in request.path %}active{% endif %}">
+                        <i class="fas fa-list"></i> Animaux
+                    </a>
+                    <a href="{% url 'animaux:mes_colliers' %}" class="sidebar-link {% if 'colliers' in request.path %}active{% endif %}">
+                        <i class="fas fa-satellite"></i> Collier
+                    </a>
                 </div>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-lg-2 col-md-3 sidebar p-3">
-                <nav class="nav flex-column">
-                    <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'animaux:accueil' %}">
-                        <i class="fas fa-home me-2"></i>Accueil
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Surveillance</div>
+                    <a href="{% url 'animaux:surveillance' %}" class="sidebar-link {% if 'surveillance' in request.path %}active{% endif %}">
+                        <i class="fas fa-video"></i> Caméra
                     </a>
-                    <a class="nav-link {% if 'dashboard' in request.path %}active{% endif %}" href="{% url 'animaux:dashboard' %}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </div>
+
+                {% if user.is_staff or user.is_superuser %}
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Gestion</div>
+                    <a href="{% url 'admin_panel:dashboard' %}" class="sidebar-link {% if '/admin_panel' in request.path %}active{% endif %}">
+                        <i class="fas fa-user-shield"></i> Espace gestion
                     </a>
-                    <a class="nav-link {% if 'map' in request.path %}active{% endif %}" href="{% url 'animaux:map' %}">
-                        <i class="fas fa-map me-2"></i>Carte
-                    </a>
-                    <a class="nav-link {% if 'animaux' in request.path %}active{% endif %}" href="{% url 'animaux:animaux_list' %}">
-                        <i class="fas fa-list me-2"></i>Liste Animaux
-                    </a>
-                    <a class="nav-link" href="/admin/">
-                        <i class="fas fa-cog me-2"></i>Administration
-                    </a>
-                </nav>
-                
-                <!-- Compteur animaux sidebar -->
-                <div class="mt-4 p-3 glass-card text-white">
-                    <h6 class="mb-2"><i class="fas fa-cow me-2"></i>Animaux Actifs</h6>
-                    <div class="d-flex align-items-center">
-                        <div class="loading me-2"></div>
-                        <span id="sidebar-animals-count">0</span>
+                </div>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="card" style="padding: var(--space-4);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fas fa-satellite text-success icon-pulse"></i>
+                        <span class="small fw-semibold">T-Beam</span>
                     </div>
-                </div>
-
-                <!-- Statut des devices T-Beam -->
-                <div class="mt-3 p-3 glass-card text-white">
-                    <h6 class="mb-2"><i class="fas fa-satellite me-2"></i>T-Beam Connectés</h6>
-                    <div id="tbeam-status">
-                        <div class="d-flex align-items-center mb-1">
-                            <div class="loading me-2"></div>
-                            <small>Chargement...</small>
+                    <div id="tbeam-status" class="small text-muted">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="loader" style="width: 16px; height: 16px;"></div>
+                            <span>Chargement...</span>
                         </div>
                     </div>
                 </div>
             </div>
+        </aside>
+        {% endblock %}
 
-            <!-- Main Content -->
-            <div class="col-lg-10 col-md-9 p-4">
-                {% block content %}
-                {% endblock %}
-            </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h1 class="topbar-title">{% block page_title %}GeoBétail{% endblock %}</h1>
+                    <a href="{% url 'animaux:alertes' %}" class="topbar-alertes-btn {% if 'alertes' in request.path %}active{% endif %}" aria-label="Alertes">
+                        <i class="fas fa-bell"></i>
+                        <span>Alertes</span>
+                    </a>
+                </div>
+                <div class="topbar-right">
+                    <!-- Bouton profil (toutes tailles) -->
+                    {% if user.is_authenticated %}
+                    <button class="profile-btn" id="profile-btn" aria-haspopup="true" aria-expanded="false">
+                        <span class="profile-avatar">
+                            {% if user.profile.photo %}
+                                <img src="{{ user.profile.photo.url }}" alt="">
+                            {% else %}
+                                {{ user.first_name|first|default:user.username|first|upper }}
+                            {% endif %}
+                        </span>
+                        <span class="profile-name">{{ user.first_name|default:user.username }}</span>
+                        <i class="fas fa-chevron-down profile-caret"></i>
+                    </button>
+                    <div class="profile-menu" id="profile-menu" role="menu">
+                        <div class="profile-menu-head">
+                            <div class="pm-name">{{ user.get_full_name|default:user.username }}</div>
+                            <div class="pm-role">{{ user.profile.get_role_display }}</div>
+                        </div>
+                        <a href="{% url 'animaux:profil' %}"><i class="fas fa-user"></i> Mon profil</a>
+                        <a href="{% url 'animaux:parametres' %}"><i class="fas fa-cog"></i> Paramètres</a>
+                        <a href="{% url 'animaux:changer_mot_de_passe' %}"><i class="fas fa-key"></i> Changer le mot de passe</a>
+                        <div class="pm-sep"></div>
+                        <form method="post" action="{% url 'deconnexion' %}" style="margin:0;">
+                            {% csrf_token %}
+                            <button type="submit" class="pm-danger"><i class="fas fa-sign-out-alt"></i> Se déconnecter</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            <main class="content-area fade-in">
+                {% block content %}{% endblock %}
+            </main>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
+    <!-- Bottom navigation (mobile/tablette) -->
+    {% block bottom_nav %}
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Navigation principale">
+        <a href="{% url 'animaux:dashboard' %}" class="bottom-nav-item {% if '/dashboard' in request.path %}active{% endif %}">
+            <i class="fas fa-tachometer-alt"></i><span>Dashboard</span>
+        </a>
+        <a href="{% url 'animaux:map' %}" class="bottom-nav-item {% if 'map' in request.path %}active{% endif %}">
+            <i class="fas fa-map-marked-alt"></i><span>Carte</span>
+        </a>
+        <a href="{% url 'animaux:animaux_list' %}" class="bottom-nav-item {% if 'animaux' in request.path %}active{% endif %}">
+            <i class="fas fa-list"></i><span>Animaux</span>
+        </a>
+        <a href="{% url 'animaux:alertes' %}" class="bottom-nav-item {% if 'alertes' in request.path %}active{% endif %}">
+            <i class="fas fa-bell"></i><span>Alertes</span>
+        </a>
+        <a href="{% url 'animaux:mes_colliers' %}" class="bottom-nav-item {% if 'colliers' in request.path %}active{% endif %}">
+            <i class="fas fa-satellite"></i><span>Collier</span>
+        </a>
+        <a href="{% url 'animaux:surveillance' %}" class="bottom-nav-item {% if 'surveillance' in request.path %}active{% endif %}">
+            <i class="fas fa-video"></i><span>Surveillance</span>
+        </a>
+    </nav>
+    {% endblock %}
+
+    <!-- FAB Scanner (éleveur connecté uniquement) -->
+    {% block scanner_fab %}
+    {% if user.is_authenticated and not user_is_admin %}
+    <button class="scanner-fab" id="scanner-fab" aria-label="Scanner un collier">
+        <i class="fas fa-qrcode"></i>
+    </button>
+    {% endif %}
+    {% endblock %}
+
+    <!-- Modal Scanner QR -->
+    <div class="scanner-overlay" id="scanner-overlay" role="dialog" aria-modal="true">
+        <button class="scanner-close" id="scanner-close" aria-label="Fermer"><i class="fas fa-times"></i></button>
+        <div class="scanner-title">Scanner le collier</div>
+        <div class="scanner-frame" id="scanner-frame">
+            <div class="scanner-placeholder" id="scanner-placeholder">
+                <i class="fas fa-camera"></i>
+                <span>Activation de la caméra…</span>
+            </div>
+            <div class="scan-line" id="scan-line"></div>
+        </div>
+        <p class="scanner-hint" id="scanner-hint">Placez le QR code du collier devant la caméra</p>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    {% block extra_js %}{% endblock %}
-    
     <script>
-    // Configuration globale avec TOUTES les URLs CORRIGÉES
-    const GLOBAL_CONFIG = {
-        apiEndpoints: {
-            // Endpoints T-Beam
-            tbeam_stream: '/api/tbeam/stream/',
-            firmware: '/api/firmware/update/',
-            
-            // Endpoints frontend - CORRIGÉS
-            dashboard: '/api/dashboard/stats/',
-            dashboard_alias: '/api/stats/',
-            animaux: '/api/animaux/liste/',
-            animaux_actifs: '/api/animaux/actifs/',
-            positions: '/api/positions/recentes/',
-            tbeam_latest: '/api/tbeam/dernieres/',
-            alertes: '/api/alertes/',
-            devices: '/api/devices/',
-            zones: '/api/zones/'
-        },
-        colors: {
-            primary: '#3498db',
-            success: '#2ecc71',
-            warning: '#f39c12',
-            danger: '#e74c3c',
-            purple: '#9b59b6'
-        },
-        updateIntervals: {
-            dashboard: 10000,
-            devices: 15000,
-            connection: 5000
-        }
-    };
-
-    // Processeur de données T-Beam
-    class TBeamDataProcessor {
-        constructor() {
-            this.supportedFormats = ['json', 'csv', 'lorawan', 'custom_binary'];
-            this.lastDataCount = 0;
-        }
-
-        // Traitement des données T-Beam entrantes
-        async processIncomingData(rawData) {
-            try {
-                console.log('🎯 Données T-Beam reçues:', rawData);
-                
-                let parsedData = this.parseData(rawData);
-                
-                if (this.validateData(parsedData)) {
-                    const savedData = await this.saveToDatabase(parsedData);
-                    this.showUINotification(parsedData);
-                    this.triggerDataUpdate();
-                    return true;
-                }
-                
-            } catch (error) {
-                console.error('❌ Erreur traitement T-Beam:', error);
-                this.showNotification('Erreur traitement données T-Beam', 'error');
-            }
-            return false;
-        }
-
-        // Analyse multi-format des données
-        parseData(rawData) {
-            // JSON
-            if (typeof rawData === 'string' && rawData.trim().startsWith('{')) {
-                try { return JSON.parse(rawData); } catch (e) {}
-            }
-            
-            // CSV (device_id,lat,lon,battery,timestamp)
-            if (typeof rawData === 'string' && rawData.includes(',')) {
-                const parts = rawData.split(',');
-                if (parts.length >= 3) {
-                    return {
-                        device_id: parts[0].trim(),
-                        latitude: parseFloat(parts[1]),
-                        longitude: parseFloat(parts[2]),
-                        batterie: parts[3] ? parseFloat(parts[3]) : null,
-                        timestamp: parts[4] || new Date().toISOString()
-                    };
-                }
-            }
-            
-            // Objet direct
-            if (typeof rawData === 'object') {
-                return {
-                    device_id: rawData.device_id || rawData.deviceId || rawData.id,
-                    latitude: parseFloat(rawData.latitude || rawData.lat),
-                    longitude: parseFloat(rawData.longitude || rawData.lng || rawData.lon),
-                    batterie: rawData.batterie || rawData.battery || rawData.bat,
-                    satellites: rawData.satellites || rawData.sats,
-                    timestamp: rawData.timestamp || rawData.time || new Date().toISOString()
-                };
-            }
-            
-            throw new Error('Format non supporté');
-        }
-
-        // Validation des données
-        validateData(data) {
-            const required = ['device_id', 'latitude', 'longitude'];
-            const isValid = required.every(field => 
-                data[field] !== undefined && data[field] !== null
-            );
-            
-            if (!isValid) {
-                console.warn('⚠️ Données T-Beam invalides:', data);
-            }
-            
-            return isValid;
-        }
-
-        // Sauvegarde des données via l'endpoint T-Beam
-        async saveToDatabase(data) {
-            try {
-                const response = await fetch(GLOBAL_CONFIG.apiEndpoints.tbeam_stream, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (!response.ok) throw new Error('Erreur sauvegarde');
-                return await response.json();
-                
-            } catch (error) {
-                console.error('❌ Erreur sauvegarde T-Beam:', error);
-                throw error;
-            }
-        }
-
-        // Notification UI
-        showUINotification(data) {
-            const message = `📡 ${data.device_id}: ${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
-            this.showNotification(message, 'success');
-            
-            // Effet visuel sur les éléments concernés
-            this.highlightNewData(data.device_id);
-        }
-
-        // Surligner les nouvelles données
-        highlightNewData(deviceId) {
-            const elements = document.querySelectorAll(`[data-device-id="${deviceId}"]`);
-            elements.forEach(el => {
-                el.classList.add('new-data-pulse');
-                setTimeout(() => el.classList.remove('new-data-pulse'), 3000);
-            });
-        }
-
-        // Déclencher la mise à jour des données
-        triggerDataUpdate() {
-            this.refreshGlobalData();
-            
-            if (typeof window.refreshDashboard === 'function') {
-                window.refreshDashboard();
-            }
-            if (typeof window.refreshMap === 'function') {
-                window.refreshMap();
-            }
-        }
-
-        // Rafraîchissement des données globales
-        async refreshGlobalData() {
-            try {
-                const [animauxRes, devicesRes] = await Promise.all([
-                    fetch(GLOBAL_CONFIG.apiEndpoints.animaux_actifs),
-                    fetch(GLOBAL_CONFIG.apiEndpoints.devices)
-                ]);
-
-                if (animauxRes.ok) {
-                    const animauxData = await animauxRes.json();
-                    updateSidebarAnimalsCount(animauxData.count || (animauxData.animaux ? animauxData.animaux.length : 0));
-                }
-
-                if (devicesRes.ok) {
-                    const devicesData = await devicesRes.json();
-                    this.updateTBeamStatus(devicesData.devices || []);
-                }
-
-            } catch (error) {
-                console.error('❌ Erreur rafraîchissement données:', error);
-            }
-        }
-
-        // Mettre à jour le statut T-Beam dans la sidebar
-        updateTBeamStatus(devices) {
-            const container = document.getElementById('tbeam-status');
-            if (!container) return;
-
-            const onlineDevices = devices.filter(d => 
-                d.statut === 'ACTIF' || 
-                (d.date_dernier_contact && new Date() - new Date(d.date_dernier_contact) < 3600000)
-            ).length;
-
-            const totalDevices = devices.length;
-
-            container.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <small>Connectés:</small>
-                    <span class="badge ${onlineDevices > 0 ? 'bg-success' : 'bg-warning'}">
-                        ${onlineDevices}/${totalDevices}
-                    </span>
-                </div>
-                <div class="mt-2">
-                    <small class="opacity-75">MAJ: ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</small>
-                </div>
-            `;
-        }
-
-        // Affichage des notifications toast
-        showNotification(message, type = 'info') {
-            const toastEl = document.getElementById('notification-toast');
-            const messageEl = document.getElementById('notification-message');
-            
-            if (!toastEl || !messageEl) return;
-
-            const typeColors = {
-                success: 'bg-success',
-                error: 'bg-danger',
-                warning: 'bg-warning',
-                info: 'bg-primary'
-            };
-
-            toastEl.className = `notification-toast toast align-items-center text-white ${typeColors[type] || 'bg-primary'} border-0`;
-            messageEl.textContent = message;
-
-            const toast = new bootstrap.Toast(toastEl);
-            toast.show();
-        }
-    }
-
-    // Initialisation globale
-    document.addEventListener('DOMContentLoaded', function() {
-        window.tbeamProcessor = new TBeamDataProcessor();
-        
-        setInterval(checkConnectionStatus, GLOBAL_CONFIG.updateIntervals.connection);
-        
-        setTimeout(() => {
-            window.tbeamProcessor.refreshGlobalData();
-        }, 1000);
-    });
-
-    // Fonctions globales
-    function updateSidebarAnimalsCount(count) {
-        const element = document.getElementById('sidebar-animals-count');
-        if (element) {
-            element.textContent = count;
-        }
-    }
-
-    async function checkConnectionStatus() {
-        try {
-            const response = await fetch(GLOBAL_CONFIG.apiEndpoints.dashboard, { 
-                method: 'HEAD',
-                cache: 'no-cache'
-            });
-            updateConnectionStatus(response.ok);
-        } catch (error) {
-            updateConnectionStatus(false);
-        }
-    }
-
-    function updateConnectionStatus(connected) {
-        const statusIcon = document.getElementById('connection-status');
-        const statusText = document.getElementById('connection-text');
-        
-        if (statusIcon && statusText) {
-            if (connected) {
-                statusIcon.style.color = GLOBAL_CONFIG.colors.success;
-                statusText.textContent = 'Connecté';
-            } else {
-                statusIcon.style.color = GLOBAL_CONFIG.colors.danger;
-                statusText.textContent = 'Déconnecté';
-            }
-        }
-    }
-
-    // Gestion des erreurs globales
-    window.addEventListener('error', function(e) {
-        console.error('🚨 Erreur globale:', e.error);
-    });
-
-    // Simulation de données T-Beam pour les tests
-    function simulateTBeamData() {
-        const devices = ['TBEAM_001', 'TBEAM_002', 'TBEAM_003'];
-        const deviceId = devices[Math.floor(Math.random() * devices.length)];
-        
-        const testData = {
-            device_id: deviceId,
-            latitude: 14.6937 + (Math.random() - 0.5) * 0.01,
-            longitude: -17.44406 + (Math.random() - 0.5) * 0.01,
-            batterie: Math.floor(Math.random() * 100),
-            satellites: 5 + Math.floor(Math.random() * 10),
-            timestamp: new Date().toISOString()
+        const GLOBAL_CONFIG = {
+            apiEndpoints: {
+                dashboard: '/api/dashboard/stats/', animaux: '/api/animaux/liste/',
+                animaux_actifs: '/api/animaux/actifs/', positions: '/api/positions/recentes/',
+                alertes: '/api/alertes/', devices: '/api/devices/', zones: '/api/zones/',
+                tbeam_stream: '/api/tbeam/stream/', live_stream: '/api/live_stream/', stream_status: '/api/stream_status/'
+            },
+            updateIntervals: { dashboard: 10000, devices: 15000, connection: 5000 }
         };
 
-        if (window.tbeamProcessor) {
-            window.tbeamProcessor.processIncomingData(testData);
-        }
-    }
+        document.addEventListener('DOMContentLoaded', function () {
+            // Menu profil
+            const pBtn = document.getElementById('profile-btn');
+            const pMenu = document.getElementById('profile-menu');
+            if (pBtn && pMenu) {
+                pBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const open = pMenu.classList.toggle('open');
+                    pBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                });
+                document.addEventListener('click', function (e) {
+                    if (!pMenu.contains(e.target) && !pBtn.contains(e.target)) {
+                        pMenu.classList.remove('open');
+                        pBtn.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
 
-    // Décommenter pour tester la réception de données
-    // setInterval(simulateTBeamData, 15000);
+            document.querySelectorAll('.bottom-nav-item[href]').forEach(link => {
+                link.addEventListener('click', () => {
+                    const m = document.getElementById('profile-menu');
+                    if (m) m.classList.remove('open');
+                });
+            });
+        });
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i><div>${message}</div>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(100%)'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('connection-dot');
+            const text = document.getElementById('connection-text');
+            if (dot && text) { dot.style.background = connected ? 'var(--color-success)' : 'var(--color-danger)'; text.textContent = connected ? 'Connecté' : 'Déconnecté'; }
+        }
+        async function checkConnection() {
+            try {
+                const response = await fetch(GLOBAL_CONFIG.apiEndpoints.dashboard, { method: 'HEAD', cache: 'no-cache' });
+                updateConnectionStatus(response.ok);
+            } catch (e) { updateConnectionStatus(false); }
+        }
+        setInterval(checkConnection, GLOBAL_CONFIG.updateIntervals.connection);
+    </script>
+
+    <!-- Scanner QR -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+    <script>
+    (function () {
+        const fab = document.getElementById('scanner-fab');
+        const overlay = document.getElementById('scanner-overlay');
+        const frame = document.getElementById('scanner-frame');
+        const placeholder = document.getElementById('scanner-placeholder');
+        const hint = document.getElementById('scanner-hint');
+        const closeBtn = document.getElementById('scanner-close');
+        if (!fab || !overlay || typeof Html5Qrcode === 'undefined') return;
+
+        let scanner = null;
+        let scanning = false;
+
+        function getCookie(name) {
+            let v = null;
+            if (document.cookie && document.cookie !== '') {
+                document.cookie.split(';').forEach(c => {
+                    const t = c.trim();
+                    if (t.substring(0, name.length + 1) === (name + '=')) v = decodeURIComponent(t.substring(name.length + 1));
+                });
+            }
+            return v;
+        }
+        const CSRF = getCookie('csrftoken');
+
+        function stopScan() {
+            if (scanner && scanning) {
+                scanner.stop().catch(() => {}).finally(() => { scanning = false; });
+            }
+        }
+
+        function openScanner() {
+            overlay.classList.add('open');
+            frame.classList.remove('detected');
+            placeholder.style.display = 'flex';
+            hint.textContent = 'Placez le QR code du collier devant la caméra';
+            if (!scanner) scanner = new Html5Qrcode('scanner-frame');
+            scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 250 } },
+                onDecode,
+                () => {}
+            ).then(() => { scanning = true; placeholder.style.display = 'none'; })
+             .catch(() => { placeholder.querySelector('span').textContent = "Caméra inaccessible. Réessayez."; });
+        }
+
+        function closeScanner() {
+            stopScan();
+            overlay.classList.remove('open');
+        }
+
+        function onDecode(decoded) {
+            if (!scanning) return;
+            stopScan();
+            frame.classList.add('detected');
+            hint.textContent = 'Collier détecté, appairage en cours…';
+            const code = decoded.replace('geobetail://pair/', '').trim().toUpperCase();
+            fetch('/api/v1/colliers/appairer-qr/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ qr_data: decoded })
+            }).then(r => r.json()).then(data => {
+                if (data.status === 'success') {
+                    showToast('Collier appairé avec succès', 'success');
+                    setTimeout(() => { window.location.href = "{% url 'animaux:mes_colliers' %}"; }, 700);
+                } else {
+                    hint.textContent = data.message || 'Échec de l’appairage.';
+                    setTimeout(closeScanner, 1500);
+                }
+            }).catch(() => { hint.textContent = 'Erreur de connexion.'; setTimeout(closeScanner, 1500); });
+        }
+
+        fab.addEventListener('click', openScanner);
+        closeBtn.addEventListener('click', closeScanner);
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeScanner(); });
+    })();
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('{% static "sw.js" %}')
+                    .then(function (r) { console.log('SW registered'); })
+                    .catch(function (e) { console.log('SW registration failed'); });
+            });
+        }
     </script>
 </body>
 </html>

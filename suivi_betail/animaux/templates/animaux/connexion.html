@@ -1,0 +1,90 @@
+{% extends "animaux/base_auth.html" %}
+
+{% block title %}Connexion — GéoBétail{% endblock %}
+{% block meta_description %}Connectez-vous à votre espace GéoBétail.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .password-toggle {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        width: 36px; height: 36px; border: none; background: transparent;
+        color: var(--color-text-muted); cursor: pointer; border-radius: var(--radius-md);
+    }
+    .password-toggle:hover { color: var(--color-primary-forest); background: var(--color-bg-earth); }
+    .forgot-link { display: block; text-align: right; margin-top: var(--space-2); font-size: var(--font-size-sm); color: var(--color-text-secondary); }
+    .forgot-link:hover { color: var(--color-primary-forest); text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-header">
+    <h1>Se connecter</h1>
+    <p>Accédez à votre tableau de bord GéoBétail</p>
+</div>
+
+<form method="post" novalidate id="connexion-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="alert" role="alert">
+            {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+        </div>
+    {% endif %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+    <div class="form-group">
+        <label for="{{ form.username.id_for_label }}">Email ou téléphone</label>
+        {{ form.username }}
+        {% if form.username.errors %}<ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.password.id_for_label }}">Mot de passe</label>
+        <div class="password-wrap">
+            {{ form.password }}
+            <button type="button" class="password-toggle" id="toggle-password" aria-label="Afficher le mot de passe" tabindex="-1">
+                <i class="fas fa-eye"></i>
+            </button>
+        </div>
+        {% if form.password.errors %}<ul class="errorlist">{% for e in form.password.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        <a href="{% url 'password_reset' %}" class="forgot-link">Mot de passe oublié ?</a>
+    </div>
+
+    <button type="submit" class="btn" id="submit-btn">
+        <span class="btn-label">Se connecter</span>
+        <span class="loader" style="display:none;width:18px;height:18px;border-top-color:#fff;"></span>
+    </button>
+</form>
+
+<div class="auth-footer">
+    Pas encore de compte ? <a href="{% url 'animaux:inscription' %}">Créer un compte</a>
+    <br>
+    <a href="{% url 'connexion_admin' %}" style="font-size: 0.85rem;">
+        <i class="fas fa-user-shield"></i> Espace administration
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        const toggle = document.getElementById('toggle-password');
+        const pwd = document.getElementById('{{ form.password.id_for_label }}');
+        toggle.addEventListener('click', function () {
+            const show = pwd.type === 'password';
+            pwd.type = show ? 'text' : 'password';
+            toggle.innerHTML = show ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+            toggle.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+        });
+
+        const form = document.getElementById('connexion-form');
+        const btn = document.getElementById('submit-btn');
+        form.addEventListener('submit', function () {
+            btn.querySelector('.btn-label').textContent = 'Vérification…';
+            btn.querySelector('.loader').style.display = 'inline-block';
+            btn.disabled = true;
+        });
+    })();
+</script>
+{% endblock %}

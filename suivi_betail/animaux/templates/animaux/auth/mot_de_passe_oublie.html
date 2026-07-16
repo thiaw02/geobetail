@@ -1,0 +1,23 @@
+{% extends "animaux/base_auth.html" %}
+{% block title %}Mot de passe oublié — GéoBétail{% endblock %}
+{% block meta_description %}Demandez la réinitialisation de votre mot de passe GéoBétail.{% endblock %}
+
+{% block content %}
+<div class="auth-header">
+    <h1>Mot de passe oublié</h1>
+    <p>Indiquez votre email ou téléphone, nous vous enverrons un lien de réinitialisation</p>
+</div>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+    <div class="form-group">
+        <label for="id_email">Email ou téléphone</label>
+        {{ form.email }}
+        {% if form.email.errors %}<ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <button type="submit" class="btn">Envoyer le lien</button>
+</form>
+
+<div class="auth-footer"><a href="{% url 'animaux:connexion' %}">Retour à la connexion</a></div>
+{% endblock %}

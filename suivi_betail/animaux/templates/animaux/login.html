@@ -1,11 +1,6 @@
-{% extends "animaux/base.html" %}
+{% extends "animaux/base_auth.html" %}
 {% block content %}
-<div class="container py-5 text-center text-light">
-    <h1>Connexion</h1>
-    <form method="post" class="mt-4 mx-auto" style="max-width:400px;">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary w-100">Se connecter</button>
-    </form>
-</div>
+<meta http-equiv="refresh" content="0; url={% url 'animaux:connexion' %}">
+<div class="auth-header"><h1>Redirection…</h1><p>Vous êtes redirigé vers la page de connexion.</p></div>
+<div class="auth-footer"><a href="{% url 'animaux:connexion' %}">Continuer vers la connexion</a></div>
 {% endblock %}

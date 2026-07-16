@@ -1,0 +1,20 @@
+{% extends "animaux/base_auth.html" %}
+{% block title %}Déconnexion — GéoBétail{% endblock %}
+{% block meta_description %}Confirmez la déconnexion de votre compte GéoBétail.{% endblock %}
+
+{% block content %}
+<div class="auth-header">
+    <h1>Se déconnecter</h1>
+    <p>Êtes-vous sûr de vouloir quitter votre session ?</p>
+</div>
+
+<div style="display:flex;gap:var(--space-3);">
+    <a href="{% url 'animaux:dashboard' %}" class="btn btn-outline" style="flex:1;">Annuler</a>
+    <form method="post" style="flex:1;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" style="width:100%;">Se déconnecter</button>
+    </form>
+</div>
+
+<div class="auth-footer"><a href="{% url 'animaux:accueil' %}">Retour à l'accueil</a></div>
+{% endblock %}

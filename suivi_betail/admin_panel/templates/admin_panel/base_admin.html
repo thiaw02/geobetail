@@ -1,0 +1,235 @@
+{% extends "animaux/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* ===== Espace de gestion GeoBétail ===== */
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+    .page-header .page-title-group h2 {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-2xl);
+        color: var(--color-text-primary);
+        margin: 0;
+    }
+    .page-header .page-title-group p {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        margin: var(--space-1) 0 0;
+    }
+
+    /* Cartes statistiques */
+    .stat-card {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-xl);
+        padding: var(--space-5);
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        box-shadow: var(--shadow-sm);
+        transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-card .stat-icon {
+        width: 48px; height: 48px;
+        border-radius: var(--radius-lg);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.25rem; color: #fff; flex-shrink: 0;
+    }
+    .stat-icon.bg-forest { background: var(--color-primary-forest); }
+    .stat-icon.bg-gold   { background: var(--color-accent-gold); }
+    .stat-icon.bg-success{ background: var(--color-success); }
+    .stat-icon.bg-danger { background: var(--color-danger); }
+    .stat-icon.bg-info   { background: var(--color-info); }
+    .stat-card .stat-value {
+        font-size: var(--font-size-2xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--color-text-primary);
+        line-height: 1.1;
+    }
+    .stat-card .stat-label {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* Barre d'outils (recherche) */
+    .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        margin-bottom: var(--space-5);
+    }
+    .toolbar .search-form {
+        display: flex;
+        gap: var(--space-2);
+        flex: 1;
+        min-width: 220px;
+    }
+
+    /* Tableaux d'administration */
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .admin-table thead th {
+        text-align: left;
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+        padding: var(--space-3) var(--space-4);
+        border-bottom: 2px solid var(--color-border-light);
+        white-space: nowrap;
+    }
+    .admin-table tbody td {
+        padding: var(--space-3) var(--space-4);
+        border-bottom: 1px solid var(--color-border-light);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+        vertical-align: middle;
+    }
+    .admin-table tbody tr:hover { background: var(--color-bg-earth); }
+    .table-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+
+    /* Formulaires */
+    .admin-form .form-field { margin-bottom: var(--space-4); }
+    .admin-form label {
+        display: block;
+        font-weight: var(--font-weight-medium);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-2);
+    }
+    .admin-form .form-control,
+    .admin-form .form-select,
+    .admin-form textarea {
+        width: 100%;
+        padding: var(--space-3) var(--space-4);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-lg);
+        font-size: var(--font-size-sm);
+        background: var(--color-bg-white);
+        font-family: inherit;
+    }
+    .admin-form .form-control:focus,
+    .admin-form .form-select:focus,
+    .admin-form textarea:focus {
+        border-color: var(--color-primary-forest);
+        box-shadow: 0 0 0 3px rgba(27, 59, 47, 0.1);
+        outline: none;
+    }
+    .admin-form .helptext {
+        display: block;
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        margin-top: var(--space-1);
+    }
+    .admin-form .form-check {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+    .admin-form .form-check label { margin: 0; }
+    .admin-form .form-check-group { display: grid; gap: var(--space-2); }
+    .admin-form .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: var(--space-1) 0 0;
+        color: var(--color-danger);
+        font-size: var(--font-size-xs);
+    }
+
+    .badge-muted {
+        background: var(--color-border-light);
+        color: var(--color-text-secondary);
+    }
+
+    /* Pagination */
+    .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        margin-top: var(--space-5);
+    }
+    .pagination-bar .page-info {
+        color: var(--color-text-muted);
+        font-size: var(--font-size-sm);
+        margin: 0 var(--space-3);
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+                <div class="sidebar-brand-icon">
+                    <img src="{% static 'img/logo1.png' %}" alt="GeoBétail">
+                </div>
+        <span class="sidebar-brand-text">GeoBétail</span>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Administration</div>
+            <a href="{% url 'admin_panel:dashboard' %}" class="sidebar-link {% if '/admin_panel' in request.path and 'utilisateurs' not in request.path and 'colliers' not in request.path and 'alertes' not in request.path %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i> Tableau de bord
+            </a>
+            <a href="{% url 'admin_panel:user_list' %}" class="sidebar-link {% if 'utilisateurs' in request.path %}active{% endif %}">
+                <i class="fas fa-users"></i> Utilisateurs
+            </a>
+            <a href="{% url 'admin_panel:device_list' %}" class="sidebar-link {% if 'colliers' in request.path %}active{% endif %}">
+                <i class="fas fa-satellite"></i> Colliers
+            </a>
+            <a href="{% url 'admin_panel:alerte_list' %}" class="sidebar-link {% if 'alertes' in request.path %}active{% endif %}">
+                <i class="fas fa-bell"></i> Alertes
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Accès</div>
+            <a href="/" class="sidebar-link">
+                <i class="fas fa-external-link-alt"></i> Voir le site
+            </a>
+        </div>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="card" style="padding: var(--space-4);">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fas fa-user-shield text-success icon-pulse"></i>
+                <span class="small fw-semibold">Espace gestion</span>
+            </div>
+            <div class="small text-muted">
+                Connecté : {{ request.user.username }}
+            </div>
+        </div>
+    </div>
+</aside>
+{% endblock %}
+
+{% block bottom_nav %}
+<nav class="bottom-nav" id="bottom-nav" aria-label="Navigation administrateur">
+    <a href="{% url 'admin_panel:dashboard' %}" class="bottom-nav-item {% if '/admin_panel' in request.path and 'utilisateurs' not in request.path and 'colliers' not in request.path and 'alertes' not in request.path %}active{% endif %}">
+        <i class="fas fa-tachometer-alt"></i><span>Tableau</span>
+    </a>
+    <a href="{% url 'admin_panel:user_list' %}" class="bottom-nav-item {% if 'utilisateurs' in request.path %}active{% endif %}">
+        <i class="fas fa-users"></i><span>Users</span>
+    </a>
+    <a href="{% url 'admin_panel:device_list' %}" class="bottom-nav-item {% if 'colliers' in request.path %}active{% endif %}">
+        <i class="fas fa-satellite"></i><span>Colliers</span>
+    </a>
+</nav>
+{% endblock %}
+
+{% block scanner_fab %}{% endblock %}

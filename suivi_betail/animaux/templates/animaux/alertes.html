@@ -1,0 +1,66 @@
+{% extends "animaux/base.html" %}
+{% load static %}
+
+{% block title %}Alertes - GeoBétail{% endblock %}
+{% block meta_description %}Alertes et notifications de votre troupeau{% endblock %}
+{% block page_title %}Alertes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-6 flex-wrap gap-3">
+    <p class="text-muted mb-0">Batterie faible, sortie de zone, inactivité… Restez informé en temps réel.</p>
+</div>
+
+<div id="alertes-content">
+    <div id="loading" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        <p class="text-muted mt-3">Chargement des alertes…</p>
+    </div>
+</div>
+
+<div id="empty-state" class="empty-state hidden">
+    <i class="fas fa-bell"></i>
+    <h3>Aucune alerte active</h3>
+    <p class="text-muted">Vos animaux vont bien. Les alertes apparaîtront ici.</p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function prioriteBadge(p) {
+    const map = {
+        'LOW': ['badge-info', 'Basse'],
+        'MEDIUM': ['badge-warning', 'Moyenne'],
+        'HIGH': ['badge-warning', 'Haute'],
+        'URGENT': ['badge-danger', 'Urgente'],
+    };
+    const [cls, label] = map[p] || ['badge-info', p];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+async function loadAlertes() {
+    try {
+        const res = await fetch('/api/alertes/', { cache: 'no-cache' });
+        if (!res.ok) throw new Error('Erreur');
+        const data = await res.json();
+        const list = data.alertes || data.results || [];
+        const loading = document.getElementById('loading');
+        const container = document.getElementById('alertes-content');
+        const empty = document.getElementById('empty-state');
+        loading.classList.add('hidden');
+        if (!list.length) { empty.classList.remove('hidden'); container.innerHTML = ''; return; }
+        container.innerHTML = `<div class="card"><div class="card-body p-0"><table class="table mb-0">
+            <thead><tr><th>Animal</th><th>Type</th><th>Priorité</th><th>Message</th><th>Date</th></tr></thead>
+            <tbody>${list.map(a => `<tr>
+                <td>${a.animal_nom || a.animal || '—'}</td>
+                <td>${a.type_alerte || '—'}</td>
+                <td>${prioriteBadge(a.priorite)}</td>
+                <td>${a.message || ''}</td>
+                <td>${a.date_creation ? new Date(a.date_creation).toLocaleString('fr-FR') : '—'}</td>
+            </tr>`).join('')}</tbody></table></div></div>`;
+    } catch (e) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('alertes-content').innerHTML = '<div class="alert alert-danger">Impossible de charger les alertes.</div>';
+    }
+}
+document.addEventListener('DOMContentLoaded', loadAlertes);
+</script>
+{% endblock %}

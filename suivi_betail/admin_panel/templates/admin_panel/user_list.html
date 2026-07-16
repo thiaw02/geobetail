@@ -1,0 +1,94 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Utilisateurs - Gestion GeoBétail{% endblock %}
+{% block page_title %}Utilisateurs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Utilisateurs</h2>
+        <p>{{ page_obj.paginator.count }} compte{{ page_obj.paginator.count|pluralize }} enregistré{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+    <a href="{% url 'admin_panel:user_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Ajouter un utilisateur
+    </a>
+</div>
+
+<div class="toolbar">
+    <form method="get" class="search-form">
+        <input type="search" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Rechercher par nom ou email...">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+        {% if request.GET.q %}
+            <a href="{% url 'admin_panel:user_list' %}" class="btn btn-ghost">Réinitialiser</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Statut</th>
+                        <th>Inscription</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            <strong>{{ u.username }}</strong>
+                            {% if u.get_full_name %}<div class="text-muted small">{{ u.get_full_name }}</div>{% endif %}
+                        </td>
+                        <td>{{ u.email|default:"—" }}</td>
+                        <td>
+                            {% if u.is_superuser %}
+                                <span class="badge badge-danger">Administrateur</span>
+                            {% elif u.is_staff %}
+                                <span class="badge badge-info">Personnel</span>
+                            {% else %}
+                                <span class="badge badge-muted">Éleveur</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                                <span class="badge badge-success">Actif</span>
+                            {% else %}
+                                <span class="badge badge-muted">Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ u.date_joined|date:"d/m/Y" }}</td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'admin_panel:user_update' u.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="{% url 'admin_panel:user_delete' u.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-users"></i></div>
+            <div class="empty-state-title">Aucun utilisateur trouvé</div>
+            <p class="text-muted">Ajustez votre recherche ou créez un nouveau compte.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

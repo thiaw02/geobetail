@@ -1,18 +1,58 @@
 # views.py
 import json
+import logging
+import sys
 import time
 import traceback
 from collections import deque
 from datetime import datetime, timedelta
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
+from django.contrib import messages
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.views import LoginView
 from django.core.files.base import ContentFile
-from django.http import JsonResponse, StreamingHttpResponse
-from django.shortcuts import render
+from django.http import HttpResponseRedirect, JsonResponse, StreamingHttpResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+
+from .roles import role_home_url
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.gzip import gzip_page
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
+from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from drf_spectacular.utils import extend_schema
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+from .forms import ConnexionForm, InscriptionForm, ProfileForm, SettingsForm
+from .geofencing import verifier_geofencing
 from .models import Alerte, Animal, CameraImage, Device, Position, Zone
+
+
+# Throttles
+class TBeamThrottle(AnonRateThrottle):
+    rate = '100/minute'
+    scope = 'tbeam_ingest'
+
+class ImageUploadThrottle(AnonRateThrottle):
+    rate = '30/minute'
+    scope = 'image_upload'
 
 # ============================================================================
 # VARIABLES GLOBALES POUR LE STREAMING VIDÉO
@@ -49,11 +89,97 @@ def map_view(request):
     """Carte de suivi"""
     return render(request, 'animaux/map.html')
 
+
+class ConnexionView(LoginView):
+    """Connexion unique avec gestion multi-rôles.
+
+    Un seul formulaire pour tous les profils (e-mail/téléphone + mot de passe).
+    La redirection dépend uniquement du rôle du compte, déterminé côté serveur :
+      - Superutilisateur Django -> /admin/ (accès réservé, pas via formulaire)
+      - Administrateur plateforme (is_staff / rôle ADMIN) -> espace de gestion
+      - Éleveur / Vétérinaire -> tableau de bord éleveur
+    """
+
+    template_name = 'animaux/connexion.html'
+    form_class = ConnexionForm
+    redirect_authenticated_user = True
+
+    def form_valid(self, form):
+        super().form_valid(form)
+        user = self.request.user
+        if getattr(user, 'is_superuser', False):
+            from django.contrib.auth import logout
+            logout(self.request)
+            from django.contrib import messages
+            messages.error(self.request, "Accès refusé : les superutilisateurs doivent se connecter via /admin/.")
+            return HttpResponseRedirect('/connexion/')
+        next_url = self.get_redirect_url()
+        if next_url:
+            return HttpResponseRedirect(next_url)
+        return HttpResponseRedirect(role_home_url(user))
+
+    def get_success_url(self):
+        return role_home_url(self.request.user)
+
+
+class ConnexionAdminView(LoginView):
+    """Connexion réservée aux administrateurs de la plateforme.
+
+    Utilise le même formulaire que la connexion classique, mais:
+      - Refuse l'accès si le compte n'est pas admin (is_staff / rôle ADMIN).
+      - Refuse explicitement les superusers Django (réservés à /admin/).
+      - Redirige systématiquement vers l'espace de gestion admin_panel.
+      - Ne permet pas l'inscription : seuls les comptes existants avec droits peuvent se connecter.
+    """
+
+    template_name = 'animaux/connexion_admin.html'
+    form_class = ConnexionForm
+    redirect_authenticated_user = True
+
+    def form_valid(self, form):
+        super().form_valid(form)
+        user = self.request.user
+        if getattr(user, 'is_superuser', False):
+            from django.contrib.auth import logout
+            logout(self.request)
+            from django.contrib import messages
+            messages.error(self.request, "Accès refusé : les superutilisateurs doivent se connecter via /admin/.")
+            return HttpResponseRedirect('/connexion/admin/')
+        is_admin = (
+            user.is_staff
+            or getattr(getattr(user, 'profile', None), 'role', None) == 'ADMIN'
+        )
+        if not is_admin:
+            from django.contrib.auth import logout
+            logout(self.request)
+            from django.contrib import messages
+            messages.error(self.request, "Accès refusé : cet espace est réservé aux administrateurs de la plateforme.")
+            return HttpResponseRedirect('/connexion/admin/')
+        return HttpResponseRedirect(reverse('admin_panel:dashboard'))
+
+    def get_success_url(self):
+        return reverse('admin_panel:dashboard')
+
+
 def connexion(request):
-    return render(request, 'animaux/connexion.html')
+    return ConnexionView.as_view()(request)
+
+
+def connexion_admin(request):
+    return ConnexionAdminView.as_view()(request)
+
 
 def inscription(request):
-    return render(request, 'animaux/inscription.html')
+    if request.method == 'POST':
+        form = InscriptionForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Rôle Éleveur uniquement (garanti par le formulaire).
+            login(request, user, backend='animaux.auth_backends.EmailOrPhoneOrUsernameBackend')
+            return redirect('animaux:ajouter_collier')
+    else:
+        form = InscriptionForm()
+    return render(request, 'animaux/inscription.html', {'form': form})
 
 def surveillance_visuelle(request):
     """Page de surveillance visuelle en temps réel"""
@@ -71,7 +197,7 @@ def surveillance(request):
 
 def camera_view(request):
     """Vue pour l'affichage du flux caméra"""
-    images = CameraImage.objects.order_by('-created_at')[:1] if CameraImage.objects.exists() else []
+    images = CameraImage.objects.order_by('-date')[:1] if CameraImage.objects.exists() else []
     return render(request, 'animaux/camera_stream.html', {'images': images})
 
 # ============================================================================
@@ -79,6 +205,9 @@ def camera_view(request):
 # ============================================================================
 
 @csrf_exempt
+@throttle_classes([ImageUploadThrottle])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def upload_image(request):
     """Réception des images individuelles de l'ESP32-CAM"""
     if request.method == 'POST':
@@ -87,13 +216,14 @@ def upload_image(request):
             if not image_data:
                 return JsonResponse({'status': 'error', 'message': 'Aucune image reçue'}, status=400)
             
-            # Sauvegarde dans la base de données
+            if len(image_data) > 5 * 1024 * 1024:
+                return JsonResponse({'status': 'error', 'message': 'Image trop volumineuse (max 5MB)'}, status=413)
+            
             filename = f"esp32_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
             img = CameraImage()
             img.image.save(filename, ContentFile(image_data))
             img.save()
             
-            # Traitement supplémentaire pour le streaming
             device_id = request.META.get('HTTP_DEVICE_ID', 'unknown')
             frame_data = {
                 'timestamp': time.time(),
@@ -101,7 +231,6 @@ def upload_image(request):
                 'device_id': device_id
             }
             
-            # Ajouter au buffer pour le streaming
             video_frames_buffer.append(frame_data)
             
             return JsonResponse({
@@ -208,6 +337,9 @@ def stream_status(request):
 # ============================================================================
 
 @csrf_exempt
+@throttle_classes([TBeamThrottle])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def receive_tbeam_data(request):
     """
     Endpoint professionnel pour réception des données T-Beam
@@ -363,12 +495,12 @@ def handle_tbeam_post(request):
                     type_animal='VACHE',
                     statut='ACTIF',
                     device=device,
-                    emoji='🐮',
+                    emoji='fa-paw',
                     couleur='#3498db'
                 )
-                print(f"✅ NOUVEL ANIMAL CRÉÉ: {animal.nom}")
+                print(f"NOUVEL ANIMAL CRÉÉ: {animal.nom}")
             else:
-                print(f"🐮 Animal existant: {animal.nom}")
+                print(f"Animal existant: {animal.nom}")
                 
         except Exception as e:
             print(f"⚠️ Erreur lors de l'association animal-device: {str(e)}")
@@ -506,7 +638,26 @@ def check_alertes(animal, position, device):
                 )
                 if created:
                     print(f"📡 ALERTE: Signal faible pour {animal.nom}")
-                
+
+        # Alerte hors zone de pâturage (geofencing)
+        if animal and position and position.latitude is not None and position.longitude is not None:
+            resultat = verifier_geofencing(float(position.latitude), float(position.longitude), animal)
+            if resultat.get('hors_zone'):
+                zones = resultat.get('zones_hors', [])
+                noms = ", ".join(z.get('nom', 'Zone') for z in zones) or "zone de pâturage"
+                alerte, created = Alerte.objects.get_or_create(
+                    animal=animal,
+                    type_alerte='HORS_ZONE',
+                    resolue=False,
+                    defaults={
+                        'message': f'{animal.nom} a quitté la zone de pâturage : {noms}',
+                        'priorite': 'HAUTE',
+                        'position': position
+                    }
+                )
+                if created:
+                    print(f"🚧 ALERTE: {animal.nom} hors zone de pâturage")
+
     except Exception as e:
         print(f"⚠️ Erreur lors de la vérification des alertes: {str(e)}")
 
@@ -547,7 +698,7 @@ def get_active_animals(request):
                         'satellites': derniere_position.satellites,
                         'accuracy': derniere_position.accuracy
                     },
-                    'emoji': animal.emoji or '🐮',
+                    'emoji': animal.emoji or 'fa-paw',
                     'couleur': animal.couleur or '#4CAF50',
                     'nombre_positions': Position.objects.filter(animal=animal).count(),
                     'dernier_contact': animal.date_dernier_contact.isoformat() if animal.date_dernier_contact else None
@@ -715,7 +866,7 @@ def get_animaux_list(request):
                 'statut': animal.statut,
                 'nombre_positions': nombre_positions,
                 'date_dernier_contact': animal.date_dernier_contact.isoformat() if animal.date_dernier_contact else None,
-                'emoji': animal.emoji or '🐮',
+                'emoji': animal.emoji or 'fa-paw',
                 'couleur': animal.couleur or '#4CAF50',
                 'derniere_position': {
                     'latitude': float(derniere_position.latitude) if derniere_position else None,
@@ -767,6 +918,66 @@ def get_zones(request):
             'status': 'error',
             'message': f'Erreur récupération zones: {str(e)}'
         }, status=500)
+
+@login_required
+@csrf_exempt
+def create_zone(request):
+    """Créer une zone de pâturage (polygone GeoJSON ou cercle)."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Méthode non autorisée'}, status=405)
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'JSON invalide'}, status=400)
+
+    nom = (data.get('nom') or '').strip()
+    if not nom:
+        return JsonResponse({'status': 'error', 'message': 'Le nom de la zone est requis'}, status=400)
+
+    polygone = data.get('polygone')
+    if not polygone:
+        return JsonResponse({'status': 'error', 'message': 'Géométrie de la zone requise'}, status=400)
+
+    zone = Zone.objects.create(
+        nom=nom,
+        description=data.get('description', ''),
+        type_zone=data.get('type_zone', 'PATURAGE'),
+        polygone=polygone,
+        couleur=data.get('couleur', '#1B3B2F'),
+    )
+
+    animal_ids = data.get('animaux') or []
+    if animal_ids:
+        zone.animaux.set(
+            Animal.objects.filter(id__in=animal_ids, device__proprietaire=request.user)
+        )
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Zone « {zone.nom} » créée',
+        'zone': {
+            'id': zone.id,
+            'nom': zone.nom,
+            'type_zone': zone.type_zone,
+            'polygone': zone.polygone,
+            'couleur': zone.couleur,
+        }
+    }, status=201)
+
+
+@login_required
+@csrf_exempt
+def delete_zone(request, zone_id):
+    """Supprimer une zone de pâturage."""
+    if request.method != 'DELETE':
+        return JsonResponse({'status': 'error', 'message': 'Méthode non autorisée'}, status=405)
+    try:
+        zone = Zone.objects.get(id=zone_id)
+    except Zone.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Zone introuvable'}, status=404)
+    zone.delete()
+    return JsonResponse({'status': 'success', 'message': f'Zone « {zone.nom} » supprimée'})
+
 
 @gzip_page
 def get_alertes(request):
@@ -874,3 +1085,118 @@ def test_endpoint(request):
         'status': 'error',
         'message': 'Méthode non autorisée'
     }, status=405)
+
+def obtain_token_pair(request):
+    return TokenObtainPairView.as_view()(request)
+
+def refresh_token(request):
+    return TokenRefreshView.as_view()(request)
+
+from .views_colliers import (
+    appairer_collier,
+    appairer_collier_qr,
+    mes_colliers as api_mes_colliers,
+    dissocier_collier,
+    qr_code_collier,
+)
+
+
+def mes_colliers(request):
+    return render(request, 'animaux/colliers/mes_colliers.html')
+
+
+def ajouter_collier(request):
+    return render(request, 'animaux/colliers/ajouter.html')
+
+
+def alertes(request):
+    """Page Alertes (éleveur)."""
+    return render(request, 'animaux/alertes.html')
+
+
+# ============================================================================
+# COMPTE UTILISATEUR (profil, paramètres, mot de passe, déconnexion)
+# ============================================================================
+@login_required
+def profil(request):
+    form = ProfileForm(request.POST or None, request.FILES or None, user=request.user)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Profil mis à jour.")
+        return redirect('animaux:profil')
+    return render(request, 'animaux/compte/profil.html', {'form': form})
+
+
+@login_required
+def parametres(request):
+    form = SettingsForm(request.POST or None, instance=request.user.profile)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Préférences enregistrées.")
+        return redirect('animaux:parametres')
+    return render(request, 'animaux/compte/parametres.html', {'form': form})
+
+
+@login_required
+def changer_mot_de_passe(request):
+    form = PasswordChangeForm(user=request.user, data=request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        update_session_auth_hash(request, form.user)
+        messages.success(request, "Mot de passe modifié.")
+        return redirect('animaux:profil')
+    return render(request, 'animaux/compte/changer_mot_de_passe.html', {'form': form})
+
+
+@login_required
+def deconnexion(request):
+    """Confirmation avant déconnexion (GET) puis déconnexion réelle (POST)."""
+    if request.method == 'POST':
+        from django.contrib.auth import logout
+        logout(request)
+        return redirect('animaux:accueil')
+    return render(request, 'animaux/compte/deconnexion.html')
+
+
+# ============================================================================
+# MOT DE PASSE OUBLIÉ — flux en 3 étapes (vues intégrées de Django)
+# ============================================================================
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.models import User
+from django.contrib.auth.views import (
+    PasswordResetView,
+    PasswordResetDoneView,
+    PasswordResetConfirmView,
+    PasswordResetCompleteView,
+)
+
+
+class ConnexionPasswordResetForm(PasswordResetForm):
+    """Reset par e-mail OU téléphone (recherche neutre côté serveur)."""
+
+    def get_users(self, identifiant):
+        identifiant = identifiant.strip()
+        if '@' in identifiant:
+            return User.objects.filter(email__iexact=identifiant, is_active=True)
+        return User.objects.filter(profile__telephone=identifiant, is_active=True)
+
+
+class MotDePasseOublieView(PasswordResetView):
+    template_name = 'animaux/auth/mot_de_passe_oublie.html'
+    email_template_name = 'animaux/auth/mot_de_passe_email.txt'
+    subject_template_name = 'animaux/auth/mot_de_passe_sujet.txt'
+    form_class = ConnexionPasswordResetForm
+    success_url = '/mot-de-passe-oublie/confirmation/'
+
+
+class MotDePasseOublieDoneView(PasswordResetDoneView):
+    template_name = 'animaux/auth/mot_de_passe_confirme.html'
+
+
+class MotDePasseResetView(PasswordResetConfirmView):
+    template_name = 'animaux/auth/mot_de_passe_reset.html'
+    success_url = '/mot-de-passe-oublie/termine/'
+
+
+class MotDePasseResetDoneView(PasswordResetCompleteView):
+    template_name = 'animaux/auth/mot_de_passe_termine.html'

@@ -1,0 +1,39 @@
+{% extends "animaux/base_auth.html" %}
+
+{% block title %}Paramètres — GéoBétail{% endblock %}
+{% block meta_description %}Préférences de votre compte GéoBétail.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-wrap { max-width: 520px; }
+    .auth-card { text-align: left; }
+    .back-link { color: var(--color-text-muted); font-size: var(--font-size-sm); display: inline-flex; gap: 6px; margin-bottom: var(--space-4); }
+    .back-link:hover { color: var(--color-primary-forest); }
+    .msg { padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: var(--font-size-sm); margin-bottom: var(--space-4); background: var(--color-success-light); color: var(--color-success); border: 1px solid rgba(46,160,96,.2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'animaux:dashboard' %}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au tableau de bord</a>
+<div class="auth-header" style="text-align:left;">
+    <h1>Paramètres</h1>
+    <p>Langue et préférences de notification</p>
+</div>
+
+{% if messages %}{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="{{ form.langue.id_for_label }}">Langue</label>
+        {{ form.langue }}
+        {% if form.langue.errors %}<ul class="errorlist">{% for e in form.langue.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-group">
+        <label for="{{ form.notif_canal.id_for_label }}">Canal de notification préféré</label>
+        {{ form.notif_canal }}
+        {% if form.notif_canal.errors %}<ul class="errorlist">{% for e in form.notif_canal.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <button type="submit" class="btn">Enregistrer</button>
+</form>
+{% endblock %}

@@ -1,0 +1,370 @@
+{% extends "animaux/base.html" %}
+
+{% block title %}Ajouter un collier - GeoBétail{% endblock %}
+{% block meta_description %}Ajoutez un nouveau collier GPS à votre compte{% endblock %}
+
+{% block page_title %}Ajouter un collier{% endblock %}
+
+{% block content %}
+<style>
+    .onboarding-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .method-card {
+        background: var(--color-bg-white);
+        border: 2px solid var(--color-border-light);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-8);
+        margin-bottom: var(--space-6);
+        transition: all var(--transition-base);
+        cursor: pointer;
+    }
+
+    .method-card:hover {
+        border-color: var(--color-accent-gold);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .method-card.selected {
+        border-color: var(--color-primary-forest);
+        background: var(--color-bg-earth);
+    }
+
+    .method-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-size-2xl);
+        margin-bottom: var(--space-4);
+    }
+
+    .method-icon.qr {
+        background: var(--color-success-light);
+        color: var(--color-success);
+    }
+
+    .method-icon.manual {
+        background: var(--color-warning-light);
+        color: var(--color-warning);
+    }
+
+    .qr-scanner {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-6);
+        margin-bottom: var(--space-6);
+    }
+
+    .scanner-container {
+        width: 100%;
+        max-width: 400px;
+        height: 300px;
+        margin: var(--space-4) auto;
+        background: var(--color-bg-earth);
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .scanner-placeholder {
+        text-align: center;
+        color: var(--color-text-muted);
+    }
+
+    .scanner-placeholder i {
+        font-size: 3rem;
+        margin-bottom: var(--space-3);
+        opacity: 0.5;
+    }
+
+    .code-input-group {
+        display: flex;
+        gap: var(--space-3);
+        margin-top: var(--space-4);
+    }
+
+    .code-input {
+        flex: 1;
+        padding: var(--space-4) var(--space-5);
+        border: 2px solid var(--color-border-default);
+        border-radius: var(--radius-xl);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-xl);
+        text-align: center;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        transition: all var(--transition-fast);
+    }
+
+    .code-input:focus {
+        border-color: var(--color-primary-forest);
+        box-shadow: 0 0 0 3px rgba(27, 59, 47, 0.1);
+        outline: none;
+    }
+
+    .success-animation {
+        text-align: center;
+        padding: var(--space-12) var(--space-6);
+    }
+
+    .success-animation i {
+        font-size: 4rem;
+        color: var(--color-success);
+        animation: successPulse 1s ease;
+    }
+
+    @keyframes successPulse {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .btn-full {
+        width: 100%;
+        padding: var(--space-4);
+        font-size: var(--font-size-base);
+    }
+
+    .hidden {
+        display: none !important;
+    }
+</style>
+
+<div class="onboarding-container">
+    <!-- Étape 1: Choix de la méthode -->
+    <div id="step1">
+        <h2 class="text-center mb-4">Comment ajouter votre collier ?</h2>
+        <p class="text-center text-muted mb-5">
+            Choisissez la méthode qui vous convient
+        </p>
+        
+        <div class="method-card" onclick="selectMethod('qr')">
+            <div class="method-icon qr">
+                <i class="fas fa-qrcode"></i>
+            </div>
+            <h3>Scanner le QR code</h3>
+            <p class="text-muted">
+                Utilisez la caméra de votre téléphone pour scanner le QR code 
+                imprimé sur le collier ou sa boîte.
+            </p>
+        </div>
+        
+        <div class="method-card" onclick="selectMethod('manual')">
+            <div class="method-icon manual">
+                <i class="fas fa-keyboard"></i>
+            </div>
+            <h3>Saisir le code manuellement</h3>
+            <p class="text-muted">
+                Entrez directement le code d'appairage fourni avec votre collier.
+            </p>
+        </div>
+    </div>
+
+    <!-- Étape 2: Scan QR -->
+    <div id="step-qr" class="hidden">
+        <div class="qr-scanner">
+            <h3 class="text-center mb-4">Scannez le QR code</h3>
+            <div class="scanner-container" id="scanner">
+                <div class="scanner-placeholder">
+                    <i class="fas fa-camera"></i>
+                    <p>Caméra prête à scanner</p>
+                </div>
+            </div>
+            <p class="text-center text-muted small">
+                Positionnez le QR code devant la caméra
+            </p>
+            <div class="mt-4">
+                <button class="btn btn-outline btn-full" onclick="showStep('step1')">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Étape 2: Saisie manuelle -->
+    <div id="step-manual" class="hidden">
+        <div class="qr-scanner">
+            <h3 class="text-center mb-4">Entrez le code d'appairage</h3>
+            <p class="text-center text-muted mb-4">
+                Le code se trouve sur le collier ou sur la carte fournie.
+            </p>
+            
+            <input 
+                type="text" 
+                class="code-input" 
+                id="code-appairage"
+                placeholder="GB-XXXX-XXXX"
+                maxlength="13"
+                inputmode="text"
+                autocapitalize="characters"
+                autocomplete="off"
+                autocorrect="off"
+                spellcheck="false"
+                oninput="formatCode(this)"
+            >
+            
+            <div id="code-error" class="alert alert-danger mt-3 hidden" role="alert">
+            </div>
+            
+            <div class="mt-4">
+                <button class="btn btn-primary btn-full" onclick="validerCode()">
+                    <i class="fas fa-check"></i> Valider
+                </button>
+                <button class="btn btn-outline btn-full mt-3" onclick="showStep('step1')">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Étape 3: Confirmation -->
+    <div id="step-confirm" class="hidden">
+        <div class="qr-scanner text-center">
+            <div class="success-animation">
+                <i class="fas fa-check-circle"></i>
+                <h3 class="mt-4">Collier détecté !</h3>
+                <p class="text-muted" id="device-code"></p>
+            </div>
+            
+            <div class="mt-4">
+                <button class="btn btn-primary btn-full" onclick="associerAnimal()">
+                    <i class="fas fa-link"></i> Associer à un animal
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+<script>
+let selectedMethod = null;
+let deviceCode = null;
+let html5QrCode = null;
+
+function selectMethod(method) {
+    selectedMethod = method;
+    document.querySelectorAll('.method-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+    
+    setTimeout(() => {
+        if (method === 'qr') {
+            showStep('step-qr');
+            initQRScanner();
+        } else {
+            showStep('step-manual');
+        }
+    }, 300);
+}
+
+function showStep(stepId) {
+    ['step1', 'step-qr', 'step-manual', 'step-confirm'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(stepId).classList.remove('hidden');
+}
+
+function formatCode(input) {
+    let value = input.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    if (value.length > 4) {
+        value = value.slice(0, 4) + '-' + value.slice(4);
+    }
+    if (value.length > 9) {
+        value = value.slice(0, 9) + '-' + value.slice(9, 13);
+    }
+    input.value = value;
+}
+
+async function validerCode() {
+    const code = document.getElementById('code-appairage').value.trim();
+    const errorDiv = document.getElementById('code-error');
+    
+    if (!code || code.length !== 13) {
+        errorDiv.textContent = 'Le code doit contenir 13 caractères (GB-XXXX-XXXX)';
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/v1/colliers/appairer/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: code })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            deviceCode = code;
+            document.getElementById('device-code').textContent = code;
+            showStep('step-confirm');
+        } else {
+            errorDiv.textContent = data.message || 'Erreur lors de l\'appairage';
+            errorDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        errorDiv.textContent = 'Erreur de connexion au serveur';
+        errorDiv.classList.remove('hidden');
+    }
+}
+
+function associerAnimal() {
+    window.location.href = '/animaux/';
+}
+
+function initQRScanner() {
+    if (!html5QrCode && typeof Html5Qrcode !== 'undefined') {
+        html5QrCode = new Html5Qrcode("scanner");
+        
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            (decodedText) => {
+                deviceCode = decodedText.replace('geobetail://pair/', '').trim().toUpperCase();
+                
+                fetch('/api/v1/colliers/appairer-qr/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ qr_data: decodedText })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('device-code').textContent = deviceCode;
+                        showStep('step-confirm');
+                    } else {
+                        alert(data.message || 'Erreur lors de l\'appairage');
+                    }
+                });
+            },
+            () => {}
+        ).catch(err => {
+            console.error('Erreur scanner:', err);
+            alert('Impossible d\'accéder à la caméra. Utilisez la saisie manuelle.');
+            showStep('step1');
+        });
+    }
+}
+
+window.addEventListener('beforeunload', () => {
+    if (html5QrCode) {
+        html5QrCode.stop().catch(() => {});
+    }
+});
+</script>
+{% endblock %}

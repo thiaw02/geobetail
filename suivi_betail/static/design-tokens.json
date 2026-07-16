@@ -1,0 +1,106 @@
+{
+  "name": "GeoBétail Design Tokens",
+  "version": "1.0.0",
+  "description": "Tokens de design partagés pour GeoBétail (web + mobile)",
+  "colors": {
+    "primary": {
+      "forest": "#1B3B2F",
+      "forestDark": "#0F261D",
+      "foliage": "#173F2E"
+    },
+    "accent": {
+      "gold": "#C9A227",
+      "goldLight": "#D9A441",
+      "goldDark": "#A8831E"
+    },
+    "background": {
+      "cream": "#FAF8F3",
+      "white": "#FFFFFF",
+      "earth": "#F5F1E8"
+    },
+    "functional": {
+      "success": "#2E7D4F",
+      "successLight": "#E8F5E9",
+      "warning": "#C9A227",
+      "warningLight": "#FFF8E1",
+      "danger": "#B83B2B",
+      "dangerLight": "#FFEBEE",
+      "info": "#6B8E7B",
+      "infoLight": "#E8F0EC"
+    },
+    "text": {
+      "primary": "#1B3B2F",
+      "secondary": "#5D6D5E",
+      "muted": "#8A9A8C",
+      "inverse": "#FFFFFF"
+    },
+    "border": {
+      "default": "#E0DCD5",
+      "light": "#F0EDE6"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "heading": "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+      "body": "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+      "mono": "'JetBrains Mono', 'Fira Code', monospace"
+    },
+    "fontSize": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "md": "1.125rem",
+      "lg": "1.25rem",
+      "xl": "1.5rem",
+      "2xl": "1.875rem",
+      "3xl": "2.25rem",
+      "4xl": "3rem"
+    },
+    "fontWeight": {
+      "normal": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "extrabold": 800
+    },
+    "lineHeight": {
+      "tight": 1.2,
+      "normal": 1.5,
+      "relaxed": 1.75
+    }
+  },
+  "spacing": {
+    "0": "0",
+    "1": "0.25rem",
+    "2": "0.5rem",
+    "3": "0.75rem",
+    "4": "1rem",
+    "5": "1.25rem",
+    "6": "1.5rem",
+    "8": "2rem",
+    "10": "2.5rem",
+    "12": "3rem",
+    "16": "4rem"
+  },
+  "borderRadius": {
+    "none": "0",
+    "sm": "0.25rem",
+    "md": "0.5rem",
+    "lg": "0.75rem",
+    "xl": "1rem",
+    "2xl": "1.5rem",
+    "full": "9999px"
+  },
+  "shadow": {
+    "sm": "0 1px 2px 0 rgba(27, 59, 47, 0.05)",
+    "md": "0 4px 6px -1px rgba(27, 59, 47, 0.1), 0 2px 4px -1px rgba(27, 59, 47, 0.06)",
+    "lg": "0 10px 15px -3px rgba(27, 59, 47, 0.1), 0 4px 6px -2px rgba(27, 59, 47, 0.05)",
+    "xl": "0 20px 25px -5px rgba(27, 59, 47, 0.1), 0 10px 10px -5px rgba(27, 59, 47, 0.04)"
+  },
+  "breakpoints": {
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px",
+    "xl": "1280px"
+  }
+}

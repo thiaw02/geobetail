@@ -1,0 +1,31 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Traiter l'alerte - Gestion GeoBétail{% endblock %}
+{% block page_title %}Alertes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Traiter l'alerte</h2>
+        <p>{{ object.get_type_alerte_display }} — {{ object.animal.nom }}</p>
+    </div>
+    <a href="{% url 'admin_panel:alerte_list' %}" class="btn btn-ghost">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" class="admin-form" novalidate>
+            {% csrf_token %}
+            {% include "admin_panel/_form_fields.html" %}
+            <div class="form-actions row mt-4">
+                <a href="{% url 'admin_panel:alerte_list' %}" class="btn btn-outline">Annuler</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

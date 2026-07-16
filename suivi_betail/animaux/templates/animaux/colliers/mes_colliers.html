@@ -1,0 +1,289 @@
+{% extends "animaux/base.html" %}
+
+{% block title %}Mes colliers - GeoBétail{% endblock %}
+{% block meta_description %}Gérez vos colliers GPS et leur association à vos animaux{% endblock %}
+
+{% block page_title %}Mes colliers{% endblock %}
+
+{% block content %}
+<style>
+    .colliers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: var(--space-6);
+    }
+
+    .collier-card {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-6);
+        transition: all var(--transition-base);
+        position: relative;
+    }
+
+    .collier-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .collier-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-4);
+    }
+
+    .collier-nom {
+        font-size: var(--font-size-lg);
+        font-weight: 700;
+        color: var(--color-primary-forest);
+    }
+
+    .collier-code {
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+        background: var(--color-bg-earth);
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+    }
+
+    .badge-statut {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+    }
+
+    .badge-actif { background: var(--color-success-light); color: var(--color-success); }
+    .badge-inactif { background: var(--color-bg-earth); color: var(--color-text-muted); }
+    .badge-erreur { background: var(--color-danger-light); color: var(--color-danger); }
+
+    .batterie-bar {
+        height: 6px;
+        background: var(--color-border-light);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+
+    .batterie-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width var(--transition-base);
+    }
+
+    .collier-info {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+        margin-bottom: var(--space-2);
+    }
+
+    .collier-actions {
+        display: flex;
+        gap: var(--space-3);
+        margin-top: var(--space-5);
+    }
+
+    .collier-actions .btn { flex: 1; }
+
+    .qr-modal-img {
+        max-width: 240px;
+        margin: 0 auto;
+        display: block;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-16) var(--space-6);
+    }
+
+    .empty-state i {
+        font-size: 3.5rem;
+        color: var(--color-border-default);
+        margin-bottom: var(--space-4);
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-6 flex-wrap gap-3">
+    <p class="text-muted mb-0">
+        Retrouvez tous vos colliers GPS et leur association à vos animaux.
+    </p>
+    <a href="{% url 'animaux:ajouter_collier' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Ajouter un collier
+    </a>
+</div>
+
+<div id="colliers-content">
+    <div id="loading" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+        <p class="text-muted mt-3">Chargement de vos colliers…</p>
+    </div>
+</div>
+
+<div id="empty-state" class="empty-state hidden">
+    <i class="fas fa-satellite"></i>
+    <h3>Vous n'avez pas encore de collier</h3>
+    <p class="text-muted">Ajoutez votre premier collier GPS pour commencer le suivi.</p>
+    <a href="{% url 'animaux:ajouter_collier' %}" class="btn btn-primary mt-3">
+        <i class="fas fa-plus"></i> Ajouter un collier
+    </a>
+</div>
+
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">QR code du collier</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="qr-image" class="qr-modal-img" alt="QR code">
+                <p class="text-muted small mt-3">
+                    Scannez ce code pour ré-appairer le collier avec l'application mobile.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const c = cookies[i].trim();
+            if (c.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const CSRF_TOKEN = getCookie('csrftoken');
+
+function statutBadge(statut) {
+    const map = {
+        'ACTIF': ['badge-actif', 'Actif'],
+        'INACTIF': ['badge-inactif', 'Inactif'],
+        'ERREUR': ['badge-erreur', 'En erreur']
+    };
+    const [cls, label] = map[statut] || ['badge-inactif', statut];
+    return `<span class="badge-statut ${cls}"><i class="fas fa-circle" style="font-size:0.5rem"></i> ${label}</span>`;
+}
+
+function batterieColor(pct) {
+    if (pct === null || pct === undefined) return 'var(--color-border-default)';
+    if (pct < 20) return 'var(--color-danger)';
+    if (pct < 50) return 'var(--color-warning)';
+    return 'var(--color-success)';
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function renderColliers(colliers) {
+    const container = document.getElementById('colliers-content');
+    const loading = document.getElementById('loading');
+    const empty = document.getElementById('empty-state');
+
+    loading.classList.add('hidden');
+
+    if (!colliers.length) {
+        empty.classList.remove('hidden');
+        container.innerHTML = '';
+        return;
+    }
+
+    const cards = colliers.map(c => {
+        const batt = c.batterie;
+        const battPct = batt != null ? Math.round(batt) : null;
+        const animal = c.animal
+            ? `<div class="collier-info"><i class="fas fa-paw"></i> ${c.animal.nom} (${c.animal.type_animal})</div>`
+            : `<div class="collier-info"><i class="fas fa-paw"></i> Non associé</div>`;
+        const pos = c.derniere_position
+            ? `<div class="collier-info"><i class="fas fa-map-marker-alt"></i> ${formatDate(c.derniere_position.timestamp)}</div>`
+            : '';
+
+        return `
+        <div class="collier-card" data-id="${c.id}">
+            <div class="collier-header">
+                <div>
+                    <div class="collier-nom">${c.nom}</div>
+                    <span class="collier-code">${c.code_appairage}</span>
+                </div>
+                ${statutBadge(c.statut)}
+            </div>
+            ${animal}
+            <div class="collier-info"><i class="fas fa-battery-three-quarters"></i> Batterie</div>
+            <div class="batterie-bar">
+                <div class="batterie-fill" style="width:${battPct != null ? battPct : 0}%; background:${batterieColor(battPct)}"></div>
+            </div>
+            ${pos}
+            <div class="collier-info"><i class="fas fa-clock"></i> Appairé le ${formatDate(c.date_appairage)}</div>
+            <div class="collier-actions">
+                <button class="btn btn-outline btn-sm" onclick="showQR(${c.id})">
+                    <i class="fas fa-qrcode"></i> QR
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="dissocier(${c.id}, '${c.nom}')">
+                    <i class="fas fa-unlink"></i> Dissocier
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `<div class="colliers-grid">${cards}</div>`;
+}
+
+async function loadColliers() {
+    try {
+        const res = await fetch('/api/v1/colliers/mes-colliers/', { cache: 'no-cache' });
+        if (!res.ok) throw new Error('Erreur de chargement');
+        const data = await res.json();
+        renderColliers(data.colliers || []);
+    } catch (e) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('colliers-content').innerHTML =
+            `<div class="alert alert-danger">Impossible de charger vos colliers.</div>`;
+    }
+}
+
+function showQR(id) {
+    const img = document.getElementById('qr-image');
+    img.src = `/api/v1/colliers/${id}/qr-code/?t=${Date.now()}`;
+    const modal = new bootstrap.Modal(document.getElementById('qrModal'));
+    modal.show();
+}
+
+async function dissocier(id, nom) {
+    if (!confirm(`Dissocier le collier « ${nom} » de votre compte ?`)) return;
+    try {
+        const res = await fetch(`/api/v1/colliers/${id}/dissocier/`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': CSRF_TOKEN }
+        });
+        if (res.ok) {
+            loadColliers();
+        } else {
+            alert('Échec de la dissociation.');
+        }
+    } catch (e) {
+        alert('Erreur de connexion.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadColliers);
+</script>
+{% endblock %}

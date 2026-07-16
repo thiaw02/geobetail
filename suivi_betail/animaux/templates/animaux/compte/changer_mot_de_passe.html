@@ -1,0 +1,92 @@
+{% extends "animaux/base_auth.html" %}
+
+{% block title %}Changer le mot de passe — GéoBétail{% endblock %}
+{% block meta_description %}Modifiez votre mot de passe GéoBétail.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-wrap { max-width: 520px; }
+    .auth-card { text-align: left; }
+    .back-link { color: var(--color-text-muted); font-size: var(--font-size-sm); display: inline-flex; gap: 6px; margin-bottom: var(--space-4); }
+    .back-link:hover { color: var(--color-primary-forest); }
+    .msg { padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: var(--font-size-sm); margin-bottom: var(--space-4); background: var(--color-success-light); color: var(--color-success); border: 1px solid rgba(46,160,96,.2); }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .password-toggle { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: none; background: transparent; color: var(--color-text-muted); cursor: pointer; border-radius: var(--radius-md); }
+    .password-toggle:hover { color: var(--color-primary-forest); background: var(--color-bg-earth); }
+    .strength { margin-top: var(--space-2); }
+    .strength-bar { height: 6px; border-radius: 999px; background: var(--color-border-light); overflow: hidden; }
+    .strength-fill { height: 100%; width: 0; transition: width .25s, background .25s; }
+    .strength-label { font-size: var(--font-size-xs); margin-top: var(--space-1); color: var(--color-text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'animaux:profil' %}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au profil</a>
+<div class="auth-header" style="text-align:left;">
+    <h1>Changer le mot de passe</h1>
+    <p>Pour votre sécurité, indiquez votre mot de passe actuel</p>
+</div>
+
+{% if messages %}{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}{% endif %}
+
+<form method="post" id="pw-form">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="id_old_password">Mot de passe actuel</label>
+        {{ form.old_password }}
+        {% if form.old_password.errors %}<ul class="errorlist">{% for e in form.old_password.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="id_new_password1">Nouveau mot de passe</label>
+        <div class="password-wrap">
+            {{ form.new_password1 }}
+            <button type="button" class="password-toggle" data-target="id_new_password1" aria-label="Afficher"><i class="fas fa-eye"></i></button>
+        </div>
+        <div class="strength">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <div class="strength-label" id="strength-label">Trop court</div>
+        </div>
+        {% if form.new_password1.errors %}<ul class="errorlist">{% for e in form.new_password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="id_new_password2">Confirmer le nouveau mot de passe</label>
+        <div class="password-wrap">
+            {{ form.new_password2 }}
+            <button type="button" class="password-toggle" data-target="id_new_password2" aria-label="Afficher"><i class="fas fa-eye"></i></button>
+        </div>
+        {% if form.new_password2.errors %}<ul class="errorlist">{% for e in form.new_password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <button type="submit" class="btn">Changer le mot de passe</button>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    document.querySelectorAll('.password-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const el = document.getElementById(btn.dataset.target);
+            const show = el.type === 'password';
+            el.type = show ? 'text' : 'password';
+            btn.innerHTML = show ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+    });
+    const p1 = document.getElementById('id_new_password1');
+    const fill = document.getElementById('strength-fill');
+    const slabel = document.getElementById('strength-label');
+    function score(v){let s=0;if(v.length>=8)s++;if(/[A-Z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;return s;}
+    if (p1) p1.addEventListener('input', () => {
+        const s = score(p1.value);
+        const pct = [0,25,50,75,100][s];
+        const col = ['var(--color-danger)','var(--color-danger)','var(--color-warning)','var(--color-accent-gold)','var(--color-success)'][s];
+        const lab = ['Trop court','Faible','Moyen','Fort','Très fort'][s];
+        fill.style.width = pct + '%'; fill.style.background = col; slabel.textContent = lab;
+    });
+})();
+</script>
+{% endblock %}

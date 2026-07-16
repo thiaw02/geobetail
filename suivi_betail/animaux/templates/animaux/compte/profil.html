@@ -1,0 +1,62 @@
+{% extends "animaux/base_auth.html" %}
+{% load static %}
+
+{% block title %}Mon profil — GéoBétail{% endblock %}
+{% block meta_description %}Gérez votre profil GéoBétail.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-wrap { max-width: 520px; }
+    .auth-card { text-align: left; }
+    .back-link { color: var(--color-text-muted); font-size: var(--font-size-sm); display: inline-flex; gap: 6px; margin-bottom: var(--space-4); }
+    .back-link:hover { color: var(--color-primary-forest); }
+    .current-photo { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-border-light); }
+    .msg { padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: var(--font-size-sm); margin-bottom: var(--space-4); background: var(--color-success-light); color: var(--color-success); border: 1px solid rgba(46,160,96,.2); }
+    textarea.form-control { min-height: 90px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{% url 'animaux:dashboard' %}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au tableau de bord</a>
+<div class="auth-header" style="text-align:left;">
+    <h1>Mon profil</h1>
+    <p>Modifiez vos informations personnelles</p>
+</div>
+
+{% if messages %}{% for m in messages %}<div class="msg">{{ m }}</div>{% endfor %}{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-group" style="display:flex;align-items:center;gap:var(--space-4);">
+        {% if request.user.profile.photo %}
+            <img src="{{ request.user.profile.photo.url }}" class="current-photo" alt="Photo">
+        {% else %}
+            <div class="current-photo" style="display:flex;align-items:center;justify-content:center;background:var(--color-primary-forest);color:#fff;font-size:1.6rem;">{{ request.user.first_name|first|upper }}</div>
+        {% endif %}
+        <div style="flex:1;">
+            <label for="id_photo">Photo de profil</label>
+            {{ form.photo }}
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.nom_complet.id_for_label }}">Nom complet</label>
+        {{ form.nom_complet }}
+        {% if form.nom_complet.errors %}<ul class="errorlist">{% for e in form.nom_complet.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.email.id_for_label }}">Adresse e-mail</label>
+        {{ form.email }}
+        {% if form.email.errors %}<ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.telephone.id_for_label }}">Téléphone</label>
+        {{ form.telephone }}
+        {% if form.telephone.errors %}<ul class="errorlist">{% for e in form.telephone.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <button type="submit" class="btn">Enregistrer</button>
+</form>
+{% endblock %}

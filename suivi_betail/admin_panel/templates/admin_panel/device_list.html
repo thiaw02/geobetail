@@ -1,0 +1,105 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Colliers - Gestion GeoBétail{% endblock %}
+{% block page_title %}Colliers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Colliers</h2>
+        <p>{{ page_obj.paginator.count }} collier{{ page_obj.paginator.count|pluralize }} enregistré{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+    <a href="{% url 'admin_panel:device_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Ajouter un collier
+    </a>
+</div>
+
+<div class="toolbar">
+    <form method="get" class="search-form">
+        <input type="search" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Rechercher par nom ou identifiant...">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+        {% if request.GET.q %}
+            <a href="{% url 'admin_panel:device_list' %}" class="btn btn-ghost">Réinitialiser</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if devices %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Identifiant</th>
+                        <th>Nom</th>
+                        <th>Type</th>
+                        <th>Batterie</th>
+                        <th>Propriétaire</th>
+                        <th>Appairage</th>
+                        <th>Statut</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in devices %}
+                    <tr>
+                        <td><code>{{ d.device_id }}</code></td>
+                        <td><strong>{{ d.nom }}</strong></td>
+                        <td>{{ d.get_type_device_display }}</td>
+                        <td>
+                            {% if d.batterie is not None %}
+                                {% if d.batterie < 20 %}
+                                    <span class="badge badge-danger">{{ d.batterie }}%</span>
+                                {% elif d.batterie < 50 %}
+                                    <span class="badge badge-warning">{{ d.batterie }}%</span>
+                                {% else %}
+                                    <span class="badge badge-success">{{ d.batterie }}%</span>
+                                {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>{{ d.proprietaire.username|default:"—" }}</td>
+                        <td>
+                            {% if d.est_appaire %}
+                                <span class="badge badge-success">Appairé</span>
+                            {% else %}
+                                <span class="badge badge-muted">{{ d.code_appairage }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if d.statut == 'ACTIF' %}
+                                <span class="badge badge-success">Actif</span>
+                            {% elif d.statut == 'ERREUR' %}
+                                <span class="badge badge-danger">Erreur</span>
+                            {% else %}
+                                <span class="badge badge-muted">Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'admin_panel:device_update' d.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="{% url 'admin_panel:device_delete' d.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-satellite"></i></div>
+            <div class="empty-state-title">Aucun collier trouvé</div>
+            <p class="text-muted">Ajoutez un collier GPS/LoRa pour suivre vos animaux.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

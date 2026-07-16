@@ -1,0 +1,13 @@
+{% autoescape off %}
+Bonjour {{ user.get_username }},
+
+Vous recevez cet e-mail car une demande de réinitialisation de mot de passe a été effectuée pour votre compte GéoBétail.
+
+Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe. Ce lien est à usage unique et expire dans 1 heure.
+
+{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+
+Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité.
+
+L'équipe GéoBétail
+{% endautoescape %}

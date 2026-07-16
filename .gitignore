@@ -5,10 +5,18 @@
 # ---- Secrets / configuration locale ----------------------------------------
 .env
 .env.*
+*.env
 !.env.example
 firebase-service-account.json
+*-service-account.json
 *.key
 *.pem
+*.crt
+secrets/
+
+# ---- Docker ----------------------------------------------------------------
+docker-compose.override.yml
+data/
 
 # ---- Base de données -------------------------------------------------------
 *.sqlite3

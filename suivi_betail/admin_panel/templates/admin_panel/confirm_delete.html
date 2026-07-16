@@ -1,0 +1,35 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Confirmer la suppression - Gestion GeoBétail{% endblock %}
+{% block page_title %}Suppression{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Confirmer la suppression</h2>
+        <p>{{ obj_type }}</p>
+    </div>
+</div>
+
+<div class="card" style="max-width: 560px;">
+    <div class="card-body text-center">
+        <div class="stat-icon bg-danger mx-auto mb-3" style="width:64px;height:64px;font-size:1.5rem;">
+            <i class="fas fa-triangle-exclamation"></i>
+        </div>
+        <h3 style="font-family:var(--font-family-heading);">Supprimer « {{ object }} » ?</h3>
+        <p class="text-muted">
+            Cette action est irréversible. {{ obj_type|default:"L'élément" }} sera définitivement supprimé
+            de la plateforme.
+        </p>
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="form-actions row" style="justify-content:center;">
+                <a href="{{ cancel_url }}" class="btn btn-outline">Annuler</a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Supprimer définitivement
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

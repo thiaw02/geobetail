@@ -1,0 +1,21 @@
+{% if is_paginated %}
+<div class="pagination-bar">
+    {% if page_obj.has_previous %}
+        <a class="btn btn-sm btn-outline" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+    {% else %}
+        <span class="btn btn-sm btn-outline disabled"><i class="fas fa-chevron-left"></i></span>
+    {% endif %}
+
+    <span class="page-info">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+        <a class="btn btn-sm btn-outline" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+    {% else %}
+        <span class="btn btn-sm btn-outline disabled"><i class="fas fa-chevron-right"></i></span>
+    {% endif %}
+</div>
+{% endif %}

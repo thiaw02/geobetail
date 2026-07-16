@@ -1,4 +1,4 @@
-# test_fixed.py - Test GeoBétail CORRIGÉ
+# test_api.py - Test GeoBétail
 import json
 
 import requests
@@ -7,58 +7,56 @@ import requests
 def test_api():
     """Teste l'API GeoBétail"""
     
-    # URLs COMPLÈTES avec http://
-    base_urls = [
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-    ]
+    base_url = "http://127.0.0.1:8000"
     
     # Données de test
     test_data = {
         "device_id": "TEST_001",
-        "latitude": 46.603354,
-        "longitude": 1.888334,
+        "latitude": 14.6937,
+        "longitude": -17.44406,
         "batterie": 85,
         "satellites": 12
     }
     
-    for base_url in base_urls:
-        # URL COMPLÈTE avec http://
-        api_url = f"{base_url}/api/tbeam/receive/"
-        
-        try:
-            print(f"🔍 Test de {api_url}...")
-            
-            response = requests.post(
-                api_url,
-                json=test_data,
-                timeout=5
-            )
-            
-            if response.status_code == 200:
-                print(f"✅ SUCCÈS! Données reçues par le serveur")
-                print(f"📨 Réponse: {response.json()}")
-                return True
-            else:
-                print(f"❌ Erreur HTTP {response.status_code}: {response.text}")
-                
-        except requests.exceptions.ConnectionError:
-            print(f"❌ Impossible de se connecter - Serveur non démarré?")
-        except Exception as e:
-            print(f"❌ Erreur: {e}")
+    endpoints = {
+        'health': f"{base_url}/api/health/",
+        'tbeam': f"{base_url}/api/tbeam/stream/",
+        'dashboard': f"{base_url}/api/dashboard/stats/",
+        'animaux': f"{base_url}/api/animaux/liste/",
+    }
     
-    return False
-
-if __name__ == "__main__":
-    print("🧪 Test API GeoBétail - VERSION CORRIGÉE")
+    print("🧪 Test API GeoBétail")
     print("=" * 50)
     
-    if test_api():
-        print("\n🎉 Test réussi! Vérifiez le dashboard:")
-        print("   http://127.0.0.1:8000/dashboard/")
-    else:
-        print("\n💡 Conseils de dépannage:")
-        print("1. Le serveur Django est-il démarré?")
-        print("2. Utilisez: python manage.py runserver 0.0.0.0:8000")
-        print("3. Ouvrez une DEUXIÈME fenêtre cmd pour les tests")        print("2. Utilisez: python manage.py runserver 0.0.0.0:8000")
-        
+    # Test health
+    try:
+        response = requests.get(endpoints['health'], timeout=5)
+        print(f"✅ Health: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Health: {e}")
+    
+    # Test dashboard
+    try:
+        response = requests.get(endpoints['dashboard'], timeout=5)
+        print(f"✅ Dashboard: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Dashboard: {e}")
+    
+    # Test T-Beam
+    try:
+        response = requests.post(endpoints['tbeam'], json=test_data, timeout=5)
+        print(f"✅ T-Beam: {response.status_code}")
+        if response.status_code in (200, 201):
+            print(f"📨 Réponse: {response.json()}")
+    except Exception as e:
+        print(f"❌ T-Beam: {e}")
+    
+    # Test animaux list
+    try:
+        response = requests.get(endpoints['animaux'], timeout=5)
+        print(f"✅ Animaux: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Animaux: {e}")
+
+if __name__ == "__main__":
+    test_api()

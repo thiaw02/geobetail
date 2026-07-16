@@ -1,167 +1,315 @@
 {% extends "animaux/base.html" %}
 
 {% block title %}Dashboard - GeoBétail{% endblock %}
+{% block meta_description %}Tableau de bord de suivi du bétail en temps réel{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-4">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="glass-card p-4 text-white">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h1 class="display-6 mb-0">🐄 Dashboard GeoBétail</h1>
-                        <p class="mb-0 opacity-75">Surveillance en temps réel de votre bétail</p>
-                    </div>
-                    <div class="col-auto">
-                        <div class="d-flex align-items-center">
-                            <div class="loading me-2"></div>
-                            <small class="opacity-75" id="live-status">Mise à jour en temps réel</small>
-                        </div>
-                    </div>
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+        margin-bottom: var(--space-6);
+    }
+
+    @media (min-width: 600px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    .stat-card {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-xl);
+        padding: var(--space-6);
+        display: flex;
+        align-items: center;
+        gap: var(--space-5);
+        transition: all var(--transition-base);
+    }
+
+    .stat-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-size-xl);
+        flex-shrink: 0;
+    }
+
+    .stat-icon.animals { background: var(--color-success-light); color: var(--color-success); }
+    .stat-icon.devices { background: var(--color-info-light); color: var(--color-info); }
+    .stat-icon.positions { background: var(--color-warning-light); color: var(--color-warning); }
+    .stat-icon.alerts { background: var(--color-danger-light); color: var(--color-danger); }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-value {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-3xl);
+        color: var(--color-text-primary);
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+        margin-top: var(--space-1);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+    }
+
+    @media (min-width: 1024px) {
+        .dashboard-grid {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    .animal-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        transition: background var(--transition-fast);
+        cursor: pointer;
+    }
+
+    .animal-row:hover {
+        background: var(--color-bg-earth);
+    }
+
+    .animal-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--font-size-lg);
+        background: var(--color-bg-earth);
+        flex-shrink: 0;
+    }
+
+    .animal-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .animal-name {
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+        font-size: var(--font-size-sm);
+    }
+
+    .animal-meta {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+    }
+
+    .alert-row {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        border-left: 3px solid var(--color-danger);
+        background: var(--color-danger-light);
+        margin-bottom: var(--space-3);
+    }
+
+    .alert-row.warning {
+        border-left-color: var(--color-warning);
+        background: var(--color-warning-light);
+    }
+
+    .alert-icon {
+        font-size: var(--font-size-lg);
+        margin-top: 2px;
+    }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: var(--font-weight-semibold);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+    }
+
+    .alert-message {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-secondary);
+        margin-top: var(--space-1);
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-4);
+        margin-top: var(--space-6);
+    }
+
+    .quick-action {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-xl);
+        text-decoration: none;
+        color: var(--color-text-primary);
+        transition: all var(--transition-fast);
+    }
+
+    .quick-action:hover {
+        border-color: var(--color-accent-gold);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .quick-action-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-bg-earth);
+        color: var(--color-primary-forest);
+    }
+</style>
+
+<!-- Actions rapides -->
+<div class="quick-actions mb-5">
+    <a href="{% url 'animaux:surveillance' %}" class="quick-action">
+        <div class="quick-action-icon">
+            <i class="fas fa-video"></i>
+        </div>
+        <div>
+            <div class="fw-semibold">Surveillance visuelle</div>
+            <div class="small text-muted">Flux caméra en direct</div>
+        </div>
+    </a>
+    <a href="{% url 'animaux:map' %}" class="quick-action">
+        <div class="quick-action-icon">
+            <i class="fas fa-map"></i>
+        </div>
+        <div>
+            <div class="fw-semibold">Carte</div>
+            <div class="small text-muted">Localisation en temps réel</div>
+        </div>
+    </a>
+    <a href="{% url 'animaux:animaux_list' %}" class="quick-action">
+        <div class="quick-action-icon">
+            <i class="fas fa-list"></i>
+        </div>
+        <div>
+            <div class="fw-semibold">Liste des animaux</div>
+            <div class="small text-muted">Gestion du cheptel</div>
+        </div>
+    </a>
+</div>
+
+<!-- Statistiques -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon animals">
+            <i class="fas fa-paw icon-pulse"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" id="total-animals">--</div>
+            <div class="stat-label">Animaux actifs</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon devices">
+            <i class="fas fa-satellite-dish"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" id="active-devices">--</div>
+            <div class="stat-label">Devices actifs</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon positions">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" id="total-positions">--</div>
+            <div class="stat-label">Positions</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon alerts">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value" id="alert-count">--</div>
+            <div class="stat-label">Alertes actives</div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenu principal -->
+<div class="dashboard-grid">
+    <!-- Animaux actifs -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="card-title">
+                <i class="fas fa-paw me-2 text-success icon-pulse"></i>Animaux actifs
+            </h2>
+            <button class="btn btn-sm btn-outline" onclick="refreshDashboard()">
+                <i class="fas fa-sync-alt"></i> Actualiser
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="animals-list">
+                <div class="empty-state">
+                    <div class="loader"></div>
+                    <p class="mt-3 text-muted">Chargement des animaux...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bouton de surveillance -->
-    <div class="row mb-4">
-        <div class="col-12 text-center">
-            <a href="{% url 'animaux:surveillance' %}" class="btn btn-primary btn-lg shadow-sm">
-                <i class="fas fa-video me-2"></i>Voir la surveillance visuelle
-            </a>
+    <!-- Alertes -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">
+                <i class="fas fa-bell me-2 text-danger"></i>Alertes récentes
+            </h2>
         </div>
-    </div>
-
-    <!-- Statistics -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="stat-card primary text-white p-4">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h2 class="display-4 mb-0" id="total-animals">0</h2>
-                        <small>Animaux Actifs</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-cow fa-2x opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="stat-card success text-white p-4">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h2 class="display-4 mb-0" id="active-devices">0</h2>
-                        <small>Devices Actifs</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-satellite-dish fa-2x opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="stat-card warning text-white p-4">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h2 class="display-4 mb-0" id="total-positions">0</h2>
-                        <small>Positions Total</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-map-marker-alt fa-2x opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="stat-card danger text-white p-4">
-                <div class="d-flex align-items-center">
-                    <div class="flex-grow-1">
-                        <h2 class="display-4 mb-0" id="last-update">--:--</h2>
-                        <small>Dernière MAJ</small>
-                    </div>
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-clock fa-2x opacity-75"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dernières données T-Beam -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="glass-card p-4 text-white">
-                <h4 class="mb-3">
-                    <i class="fas fa-satellite me-2"></i>Dernières Données T-Beam
-                    <button class="btn btn-sm btn-outline-light ms-2" onclick="refreshTBeamData()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </h4>
-                <div id="tbeam-latest-data" class="table-responsive">
-                    <div class="text-center py-3">
-                        <div class="loading mb-2"></div>
-                        <p class="mb-0 opacity-75">Chargement des données T-Beam...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="row">
-        <!-- Animals List -->
-        <div class="col-lg-6 mb-4">
-            <div class="glass-card p-4 text-white h-100">
-                <h4 class="mb-3">
-                    <i class="fas fa-list me-2"></i>Animaux Actifs
-                    <span class="badge bg-success ms-2" id="animals-count">0</span>
-                </h4>
-                <div id="animals-list" style="max-height: 500px; overflow-y: auto;">
-                    <div class="text-center py-5">
-                        <div class="loading mb-3"></div>
-                        <p class="mb-0 opacity-75">Chargement des animaux...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Map & Details -->
-        <div class="col-lg-6">
-            <!-- Quick Stats -->
-            <div class="glass-card p-4 text-white mb-4">
-                <h4 class="mb-3">
-                    <i class="fas fa-chart-bar me-2"></i>Statistiques Rapides
-                </h4>
-                <div id="quick-stats">
-                    <div class="row text-center">
-                        <div class="col-4">
-                            <div class="h4 mb-1" id="stats-today">0</div>
-                            <small class="opacity-75">Aujourd'hui</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="h4 mb-1" id="stats-week">0</div>
-                            <small class="opacity-75">7 jours</small>
-                        </div>
-                        <div class="col-4">
-                            <div class="h4 mb-1" id="stats-month">0</div>
-                            <small class="opacity-75">30 jours</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Animal Details -->
-            <div class="glass-card p-4 text-white">
-                <h4 class="mb-3">
-                    <i class="fas fa-info-circle me-2"></i>Détails de l'Animal
-                </h4>
-                <div id="animal-details">
-                    <div class="text-center py-4 opacity-75">
-                        <i class="fas fa-cow fa-2x mb-3"></i>
-                        <p>Sélectionnez un animal pour voir les détails</p>
-                    </div>
+        <div class="card-body">
+            <div id="alerts-list">
+                <div class="empty-state">
+                    <div class="loader"></div>
+                    <p class="mt-3 text-muted">Chargement des alertes...</p>
                 </div>
             </div>
         </div>
@@ -171,44 +319,104 @@
 
 {% block extra_js %}
 <script>
-// === JavaScript du dashboard ===
-
-// Configuration du dashboard
-const DASHBOARD_CONFIG = {
-    updateInterval: 10000,
-    apiEndpoints: {
-        dashboard_stats: '/api/dashboard/stats/',
-        animaux_actifs: '/api/animaux/actifs/',
-        tbeam_latest: '/api/tbeam/dernieres/',
-        stats: '/api/stats/'
-    }
-};
-
-let currentAnimals = [];
-let selectedAnimal = null;
 let dashboardInterval;
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeDashboard();
-});
-
-function initializeDashboard() {
     loadDashboardData();
-    loadActiveAnimals();
-    loadTBeamLatestData();
-
-    dashboardInterval = setInterval(() => {
-        loadDashboardData();
-        loadActiveAnimals();
-        loadTBeamLatestData();
-    }, DASHBOARD_CONFIG.updateInterval);
-}
-
-// === Fonctions de chargement (inchangées) ===
-// [Ton code JavaScript complet ici — inchangé, à partir de loadDashboardData jusqu’à showError()]
+    dashboardInterval = setInterval(loadDashboardData, 10000);
+});
 
 window.addEventListener('beforeunload', function() {
     if (dashboardInterval) clearInterval(dashboardInterval);
 });
+
+async function loadDashboardData() {
+    try {
+        const [statsRes, animauxRes, alertesRes] = await Promise.all([
+            fetch('/api/dashboard/stats/'),
+            fetch('/api/animaux/actifs/'),
+            fetch('/api/alertes/')
+        ]);
+        
+        const stats = await statsRes.json();
+        const animaux = await animauxRes.json();
+        const alertes = await alertesRes.json();
+        
+        if (stats.stats) {
+            document.getElementById('total-animals').textContent = stats.stats.animaux_actifs || 0;
+            document.getElementById('active-devices').textContent = stats.stats.devices_actifs || 0;
+            document.getElementById('total-positions').textContent = stats.stats.total_positions || 0;
+            document.getElementById('alert-count').textContent = stats.stats.alertes_actives || 0;
+        }
+        
+        if (animaux.animaux) {
+            updateAnimalsList(animaux.animaux);
+        }
+        
+        if (alertes.alertes) {
+            updateAlertesList(alertes.alertes);
+        }
+    } catch (error) {
+        console.error('Erreur chargement dashboard:', error);
+    }
+}
+
+function updateAnimalsList(animaux) {
+    const container = document.getElementById('animals-list');
+    if (!animaux || animaux.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-paw icon-pulse"></i></div>
+                <div class="empty-state-title">Aucun animal actif</div>
+                <p class="text-muted">Les positions GPS apparaîtront ici une fois les devices connectés.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = animaux.map(animal => `
+        <div class="animal-row" onclick="window.location.href='{% url 'animaux:map' %}'">
+            <div class="animal-avatar"><i class="fas ${animal.emoji || 'fa-paw'} icon-pulse"></i></div>
+            <div class="animal-info">
+                <div class="animal-name">${animal.nom}</div>
+                <div class="animal-meta">
+                    ${animal.type_animal} • ${animal.device_id || 'Sans device'}
+                </div>
+            </div>
+            <span class="badge badge-success">${animal.statut}</span>
+        </div>
+    `).join('');
+}
+
+function updateAlertesList(alertes) {
+    const container = document.getElementById('alerts-list');
+    if (!alertes || alertes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="empty-state-title">Aucune alerte</div>
+                <p class="text-muted">Tout est en ordre.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = alertes.slice(0, 10).map(alerte => `
+        <div class="alert-row ${alerte.priorite === 'HIGH' || alerte.priorite === 'URGENT' ? '' : 'warning'}">
+            <div class="alert-icon">
+                <i class="fas fa-${alerte.type_alerte === 'BATTERIE_FAIBLE' ? 'battery-quarter' : 'exclamation-triangle'}"></i>
+            </div>
+            <div class="alert-content">
+                <div class="alert-title">${alerte.animal_nom}</div>
+                <div class="alert-message">${alerte.message}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function refreshDashboard() {
+    loadDashboardData();
+    showToast('Dashboard actualisé', 'info');
+}
 </script>
 {% endblock %}

@@ -1,0 +1,81 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Alertes - Gestion GeoBétail{% endblock %}
+{% block page_title %}Alertes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Alertes</h2>
+        <p>{{ page_obj.paginator.count }} alerte{{ page_obj.paginator.count|pluralize }} enregistrée{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if alertes %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Animal</th>
+                        <th>Type</th>
+                        <th>Priorité</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                        <th>État</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in alertes %}
+                    <tr>
+                        <td><strong>{{ a.animal.nom }}</strong></td>
+                        <td>{{ a.get_type_alerte_display }}</td>
+                        <td>
+                            {% if a.priorite == 'URGENT' %}
+                                <span class="badge badge-danger">Urgente</span>
+                            {% elif a.priorite == 'HIGH' %}
+                                <span class="badge badge-warning">Haute</span>
+                            {% elif a.priorite == 'MEDIUM' %}
+                                <span class="badge badge-info">Moyenne</span>
+                            {% else %}
+                                <span class="badge badge-muted">Basse</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ a.message|truncatechars:50 }}</td>
+                        <td>{{ a.date_creation|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if a.resolue %}
+                                <span class="badge badge-success">Résolue</span>
+                            {% else %}
+                                <span class="badge badge-danger">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'admin_panel:alerte_update' a.pk %}" class="btn btn-sm btn-outline" title="Traiter">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="{% url 'admin_panel:alerte_delete' a.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-bell-slash"></i></div>
+            <div class="empty-state-title">Aucune alerte</div>
+            <p class="text-muted">Aucune alerte n'a été générée pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

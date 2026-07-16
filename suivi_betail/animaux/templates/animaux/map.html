@@ -1,85 +1,362 @@
 {% extends "animaux/base.html" %}
 
 {% block title %}Carte des Animaux - Suivi en Temps Réel{% endblock %}
+{% block meta_description %}Carte de localisation en temps réel des animaux du cheptel via GPS{% endblock %}
+
+{% block page_title %}Carte{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <h2 class="text-center mb-3 text-white">📍 Localisation en Temps Réel des Animaux</h2>
+<style>
+    .map-container {
+        position: relative;
+        height: calc(100vh - var(--navbar-height) - var(--space-12));
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        border: 1px solid var(--color-border-light);
+        box-shadow: var(--shadow-sm);
+    }
 
-    <!-- Indicateur de statut -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="glass-card p-3 text-white text-center">
-                <div class="d-flex justify-content-center align-items-center">
-                    <div id="connection-indicator" class="loading me-2"></div>
-                    <span id="connection-text">Connexion au serveur...</span>
-                    <span id="data-count" class="badge bg-success ms-2">0 données</span>
-                </div>
+    #map {
+        height: 100%;
+        width: 100%;
+        background: var(--color-bg-earth);
+    }
+
+    .map-controls {
+        position: absolute;
+        top: var(--space-4);
+        right: var(--space-4);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .map-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-lg);
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-fast);
+        color: var(--color-text-primary);
+        font-size: var(--font-size-base);
+    }
+
+    .map-btn:hover {
+        background: var(--color-primary-forest);
+        color: var(--color-text-inverse);
+        border-color: var(--color-primary-forest);
+    }
+
+    .map-btn.active {
+        background: var(--color-accent-gold);
+        color: var(--color-primary-forest);
+        border-color: var(--color-accent-gold);
+    }
+
+    .map-info-panel {
+        position: absolute;
+        bottom: var(--space-4);
+        left: var(--space-4);
+        right: var(--space-4);
+        z-index: 1000;
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-4) var(--space-5);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+    }
+
+    .map-info-handle {
+        display: none;
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--color-border-default);
+        margin: 0 auto var(--space-2);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .map-info-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .map-info-label {
+        font-size: var(--font-size-xs);
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .map-info-value {
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-text-primary);
+    }
+
+    .zone-animaux-list {
+        max-height: 180px;
+        overflow-y: auto;
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-lg);
+        padding: var(--space-3);
+    }
+
+    @media (max-width: 1023px) {
+        .map-container {
+            height: calc(100vh - var(--navbar-height) - var(--bottom-nav-height) - var(--safe-bottom));
+            height: calc(100dvh - var(--navbar-height) - var(--bottom-nav-height) - var(--safe-bottom));
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+        }
+        /* Barre d'outils remplacée par un FAB sur mobile */
+        .map-controls {
+            display: none;
+        }
+        /* Panneau d'infos en bottom sheet repliable */
+        .map-info-panel {
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+            flex-direction: column;
+            align-items: stretch;
+            gap: var(--space-2);
+            transition: transform var(--transition-base);
+        }
+        .map-info-panel.collapsed {
+            transform: translateY(calc(100% - 64px));
+        }
+        .map-info-handle {
+            display: block;
+        }
+        /* Modales en bottom sheet sur mobile */
+        .modal-dialog {
+            margin: 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 100%;
+        }
+        .modal-content {
+            border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header::before {
+            content: '';
+            position: absolute;
+            top: var(--space-3);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--color-border-default);
+        }
+        .modal-header { padding-top: var(--space-6); position: relative; }
+        /* Plein écran strict : pas de padding autour de la carte */
+        .main-content.map-mode .content-area {
+            padding: 0;
+        }
+    }
+</style>
+
+<div class="map-container">
+    <div id="map"></div>
+    
+    <div class="map-controls">
+        <button class="map-btn" onclick="showAllAnimals()" title="Voir tous les animaux">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button class="map-btn" onclick="toggleRoutes()" id="routes-btn" title="Afficher/Masquer les trajets">
+            <i class="fas fa-route"></i>
+        </button>
+        <button class="map-btn" onclick="startZoneDraw()" id="draw-zone-btn" title="Dessiner une zone de pâturage">
+            <i class="fas fa-draw-polygon"></i>
+        </button>
+        <button class="map-btn" onclick="refreshMapData()" title="Actualiser">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+
+    <!-- FAB mobile (remplace la barre d'outils) -->
+    <button class="fab" id="map-fab" aria-label="Outils de la carte" onclick="document.getElementById('map-fab-menu').classList.toggle('open')">
+        <i class="fas fa-layer-group"></i>
+    </button>
+    <div class="fab-menu" id="map-fab-menu">
+        <a class="fab-item" href="javascript:void(0)" onclick="showAllAnimals();closeMapFab()">
+            <i class="fas fa-expand"></i> Voir tout
+        </a>
+        <a class="fab-item" href="javascript:void(0)" onclick="toggleRoutes();closeMapFab()">
+            <i class="fas fa-route"></i> Trajets
+        </a>
+        <a class="fab-item" href="javascript:void(0)" onclick="startZoneDraw();closeMapFab()">
+            <i class="fas fa-draw-polygon"></i> Dessiner zone
+        </a>
+        <a class="fab-item" href="javascript:void(0)" onclick="refreshMapData();closeMapFab()">
+            <i class="fas fa-sync-alt"></i> Actualiser
+        </a>
+    </div>
+    
+    <div class="map-info-panel" id="map-info-panel">
+        <div class="map-info-handle" onclick="toggleMapInfo()" aria-hidden="true"></div>
+        <div class="map-info-item">
+            <div>
+                <div class="map-info-label">Animaux actifs</div>
+                <div class="map-info-value" id="map-animals-count">--</div>
             </div>
         </div>
-    </div>
-
-    <div id="map" style="height: 70vh; width: 100%; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.2);"></div>
-
-    <div class="text-center mt-3">
-        <button class="btn btn-outline-success me-2" onclick="startAutoFollow()">🔁 Suivre automatiquement</button>
-        <button class="btn btn-outline-primary me-2" onclick="showAllAnimals()">👁️ Voir tous les animaux</button>
-        <button class="btn btn-outline-warning me-2" onclick="toggleRoutes()">🔄 Afficher/Masquer les trajets</button>
-        <button class="btn btn-outline-danger" onclick="stopFollow()">🛑 Arrêter le suivi</button>
-        <button class="btn btn-outline-info ms-2" onclick="refreshMapData()">🔄 Actualiser</button>
-    </div>
-
-    <!-- Panneau d'informations -->
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="glass-card p-3 text-white">
-                <h5>📊 Dernières Données Reçues</h5>
-                <div id="realtime-info" class="small">
-                    En attente des données...
-                </div>
+        <div class="map-info-item">
+            <div>
+                <div class="map-info-label">Positions</div>
+                <div class="map-info-value" id="map-positions-count">--</div>
+            </div>
+        </div>
+        <div class="map-info-item">
+            <div>
+                <div class="map-info-label">Dernière MAJ</div>
+                <div class="map-info-value" id="map-last-update">--</div>
+            </div>
+        </div>
+        <div class="map-info-item">
+            <div>
+                <div class="map-info-label">Zones de pâturage</div>
+                <div class="map-info-value" id="map-zones-count">0</div>
             </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="zoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle zone de pâturage</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nom de la zone</label>
+                    <input type="text" id="zone-nom" class="form-control" placeholder="Ex : Pâturage Nord">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Type de zone</label>
+                    <select id="zone-type" class="form-select">
+                        <option value="PATURAGE">Pâturage</option>
+                        <option value="STABULATION">Stabulation</option>
+                        <option value="ZONE_RISQUE">Zone à risque</option>
+                        <option value="ZONE_INTERDITE">Zone interdite</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Animaux concernés</label>
+                    <div id="zone-animaux" class="zone-animaux-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveDrawnZone()">Enregistrer la zone</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% csrf_token %}
 {% endblock %}
 
 {% block extra_js %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css"/>
+<script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 
 <script>
 let map;
 let deviceMarkers = {};
 let animalRoutes = {};
 let FOLLOW_DEVICE_ID = null;
-let dataCount = 0;
 let showRoutes = true;
 let refreshInterval;
+let drawnItems;
+let pendingLayer = null;
+let zoneLayers = {};
 
-// ✅ Initialisation
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("🗺️ Initialisation de la carte...");
-    
-    // Centrer sur le Sénégal par défaut
-    map = L.map('map').setView([14.6937, -17.44406], 10);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    // Plein écran sur mobile : la carte gère sa propre marge basse
+    document.querySelector('.main-content')?.classList.add('map-mode');
 
-    // Charger les positions initiales
+    initMap();
     loadMapData();
-    
-    // Démarrer l'actualisation automatique
     startAutoRefresh();
+
+    // Fermer le FAB au clic extérieur
+    document.addEventListener('click', (e) => {
+        const fab = document.getElementById('map-fab');
+        const menu = document.getElementById('map-fab-menu');
+        if (menu && menu.classList.contains('open') && !fab.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.remove('open');
+        }
+    });
 });
 
-// ✅ Chargement des données de la carte
+function closeMapFab() {
+    document.getElementById('map-fab-menu')?.classList.remove('open');
+}
+
+function toggleMapInfo() {
+    document.getElementById('map-info-panel')?.classList.toggle('collapsed');
+}
+
+function initMap() {
+    map = L.map('map').setView([14.6937, -17.44406], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+
+    drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    const drawControl = new L.Control.Draw({
+        draw: {
+            polygon: true,
+            polyline: false,
+            rectangle: false,
+            circle: true,
+            marker: false,
+            circlemarker: false
+        },
+        edit: { featureGroup: drawnItems, edit: false, remove: false }
+    });
+    map.addControl(drawControl);
+
+    map.on(L.Draw.Event.CREATED, function(e) {
+        pendingLayer = e.layer;
+        openZoneModal();
+    });
+
+    loadZones();
+}
+
 async function loadMapData() {
     try {
-        console.log("📡 Chargement des données...");
-        updateConnectionStatus('Chargement des données...', 'warning');
-        
         const [positionsRes, animauxRes] = await Promise.all([
             fetch('/api/positions/recentes/?limit=100'),
             fetch('/api/animaux/actifs/')
@@ -89,45 +366,38 @@ async function loadMapData() {
         const animauxData = await animauxRes.json();
         
         if (positionsData.status === 'success') {
-            console.log(`📊 ${positionsData.data.length} positions chargées`);
             positionsData.data.forEach(position => {
                 updateOrCreateMarker(
-                    position.device_id, 
-                    position.latitude, 
-                    position.longitude, 
+                    position.device_id,
+                    position.latitude,
+                    position.longitude,
                     position
                 );
                 addToRoute(position.device_id, position.latitude, position.longitude);
             });
-            updateDataCount(positionsData.data.length);
+            document.getElementById('map-positions-count').textContent = positionsData.data.length;
         }
         
         if (animauxData.status === 'success') {
-            console.log(`🐮 ${animauxData.animaux.length} animaux actifs`);
-            updateRealtimeInfo(animauxData.animaux);
+            document.getElementById('map-animals-count').textContent = animauxData.count || animauxData.animaux?.length || 0;
         }
         
-        updateConnectionStatus('Données chargées', 'success');
-        
+        document.getElementById('map-last-update').textContent = new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
     } catch (error) {
-        console.error('❌ Erreur chargement données:', error);
-        updateConnectionStatus('Erreur de connexion', 'danger');
+        console.error('Erreur chargement carte:', error);
     }
 }
 
-// ✅ Création ou mise à jour d'un marqueur
 function updateOrCreateMarker(device_id, lat, lon, payload) {
     if (!lat || !lon) return;
-
+    
     const latlng = [parseFloat(lat), parseFloat(lon)];
     const animalName = payload.animal_nom || `Animal ${device_id}`;
-
+    
     if (deviceMarkers[device_id]) {
-        // Mise à jour du marqueur existant
         deviceMarkers[device_id].setLatLng(latlng);
         deviceMarkers[device_id].getPopup().setContent(renderPopup(device_id, payload));
         
-        // Animation de mise à jour
         deviceMarkers[device_id]._icon.classList.add('marker-pulse');
         setTimeout(() => {
             if (deviceMarkers[device_id]._icon) {
@@ -135,7 +405,6 @@ function updateOrCreateMarker(device_id, lat, lon, payload) {
             }
         }, 1000);
     } else {
-        // Création d'un nouveau marqueur
         const marker = L.marker(latlng, {
             title: animalName,
             icon: createCustomIcon(device_id)
@@ -144,20 +413,16 @@ function updateOrCreateMarker(device_id, lat, lon, payload) {
         marker.bindPopup(renderPopup(device_id, payload));
         marker.addTo(map);
         deviceMarkers[device_id] = marker;
-        
-        console.log(`📍 Nouveau marqueur créé: ${animalName}`);
     }
-
-    // Suivi de l'appareil sélectionné
+    
     if (FOLLOW_DEVICE_ID === device_id) {
         map.setView(latlng, 15, { animate: true });
         deviceMarkers[device_id].openPopup();
     }
 }
 
-// ✅ Création d'icône personnalisée
 function createCustomIcon(device_id) {
-    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
+    const colors = ['#2E7D4F', '#C9A227', '#B83B2B', '#6B8E7B', '#1B3B2F', '#D9A441'];
     const color = colors[device_id.charCodeAt(0) % colors.length];
     
     return L.divIcon({
@@ -175,13 +440,15 @@ function createCustomIcon(device_id) {
     });
 }
 
-// ✅ Gestion des trajets
 function addToRoute(device_id, lat, lon) {
     if (!showRoutes) return;
     
     if (!animalRoutes[device_id]) {
+        const colors = ['#2E7D4F', '#C9A227', '#B83B2B', '#6B8E7B', '#1B3B2F', '#D9A441'];
+        const color = colors[device_id.charCodeAt(0) % colors.length];
+        
         animalRoutes[device_id] = L.polyline([], {
-            color: getRouteColor(device_id),
+            color: color,
             weight: 4,
             opacity: 0.7
         }).addTo(map);
@@ -191,28 +458,21 @@ function addToRoute(device_id, lat, lon) {
     animalRoutes[device_id].addLatLng(latlng);
 }
 
-// ✅ Basculer l'affichage des trajets
 function toggleRoutes() {
     showRoutes = !showRoutes;
+    const btn = document.getElementById('routes-btn');
     
     Object.values(animalRoutes).forEach(route => {
         if (showRoutes) {
             map.addLayer(route);
+            btn.classList.add('active');
         } else {
             map.removeLayer(route);
+            btn.classList.remove('active');
         }
     });
-    
-    showNotification(showRoutes ? '🔄 Trajets affichés' : '🔄 Trajets masqués', 'info');
 }
 
-// ✅ Couleur des trajets
-function getRouteColor(device_id) {
-    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
-    return colors[device_id.charCodeAt(0) % colors.length];
-}
-
-// ✅ Popup d'information
 function renderPopup(device_id, data) {
     const nom = data.animal_nom || `Animal ${device_id}`;
     const batt = data.batterie ? data.batterie + "%" : "N/A";
@@ -221,60 +481,23 @@ function renderPopup(device_id, data) {
     const accuracy = data.accuracy ? data.accuracy.toFixed(1) + 'm' : 'N/A';
 
     return `
-        <div style="min-width: 200px;">
+        <div style="min-width: 200px; font-family: var(--font-family-body);">
             <strong>${nom}</strong><br>
-            <small>ID: ${device_id}</small><br>
-            <hr style="margin: 5px 0;">
-            🌍 ${parseFloat(data.latitude).toFixed(6)}, ${parseFloat(data.longitude).toFixed(6)}<br>
-            📡 Précision: ${accuracy}<br>
-            🛰️ Satellites: ${sats}<br>
-            🔋 Batterie: ${batt}<br>
-            🕒 ${date}<br>
-            <hr style="margin: 5px 0;">
-            <button onclick="followDevice('${device_id}')" class="btn btn-sm btn-primary w-100 mb-1">
-                👁️ Suivre
+            <small style="color: var(--color-text-muted);">ID: ${device_id}</small><br>
+            <hr style="margin: 8px 0; border-color: var(--color-border-light);">
+            <i class="fas fa-globe"></i> ${parseFloat(data.latitude).toFixed(6)}, ${parseFloat(data.longitude).toFixed(6)}<br>
+            <i class="fas fa-signal"></i> Précision: ${accuracy}<br>
+            <i class="fas fa-satellite"></i> Satellites: ${sats}<br>
+            <i class="fas fa-battery-three-quarters"></i> Batterie: ${batt}<br>
+            <i class="fas fa-clock"></i> ${date}<br>
+            <hr style="margin: 8px 0; border-color: var(--color-border-light);">
+            <button onclick="followDevice('${device_id}')" class="btn btn-sm btn-primary w-100" style="margin-top: 4px;">
+                <i class="fas fa-eye"></i> Suivre
             </button>
         </div>
     `;
 }
 
-// ✅ Mise à jour des informations
-function updateRealtimeInfo(animaux) {
-    const infoDiv = document.getElementById('realtime-info');
-    
-    if (!animaux || animaux.length === 0) {
-        infoDiv.innerHTML = 'Aucun animal actif';
-        return;
-    }
-    
-    const dernierAnimal = animaux[0];
-    const date = new Date().toLocaleString('fr-FR');
-    
-    infoDiv.innerHTML = `
-        <div class="row">
-            <div class="col-md-4">
-                <strong>Dernier animal:</strong> ${dernierAnimal.nom}
-            </div>
-            <div class="col-md-4">
-                <strong>Positions chargées:</strong> ${dataCount}
-            </div>
-            <div class="col-md-4">
-                <strong>Dernière MAJ:</strong> ${date}
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-12">
-                <strong>Animaux actifs:</strong> ${animaux.length}
-                ${animaux.slice(0, 3).map(animal => `
-                    <span class="badge bg-success me-1">${animal.nom}</span>
-                `).join('')}
-                ${animaux.length > 3 ? `<span class="badge bg-secondary">+${animaux.length - 3}</span>` : ''}
-            </div>
-        </div>
-    `;
-}
-
-// ✅ Suivi d'un appareil spécifique
 function followDevice(device_id) {
     FOLLOW_DEVICE_ID = device_id;
     const marker = deviceMarkers[device_id];
@@ -282,115 +505,168 @@ function followDevice(device_id) {
         map.setView(marker.getLatLng(), 15, { animate: true });
         marker.openPopup();
     }
-    showNotification(`👁️ Suivi de ${device_id}`, 'info');
 }
 
-// ✅ Suivi automatique du dernier animal
-function startAutoFollow() {
-    FOLLOW_DEVICE_ID = "__AUTO__";
-    showNotification("🔁 Suivi automatique activé", 'info');
-}
-
-// ✅ Voir tous les animaux
 function showAllAnimals() {
     FOLLOW_DEVICE_ID = null;
-    
     const markers = Object.values(deviceMarkers);
     if (markers.length > 0) {
         const group = new L.featureGroup(markers);
         map.fitBounds(group.getBounds(), { padding: [20, 20] });
     }
-    
-    showNotification("👁️ Vue de tous les animaux", 'info');
 }
 
-// ✅ Arrêter le suivi
-function stopFollow() {
-    FOLLOW_DEVICE_ID = null;
-    showNotification("🛑 Suivi désactivé", 'warning');
-}
-
-// ✅ Actualiser les données
 function refreshMapData() {
     loadMapData();
-    showNotification("🔄 Données actualisées", 'info');
+    showToast('Données actualisées', 'info');
 }
 
-// ✅ Actualisation automatique
 function startAutoRefresh() {
-    refreshInterval = setInterval(loadMapData, 15000); // Toutes les 15 secondes
+    refreshInterval = setInterval(loadMapData, 15000);
 }
 
-// ✅ Mise à jour du statut de connexion
-function updateConnectionStatus(message, type) {
-    const indicator = document.getElementById('connection-indicator');
-    const text = document.getElementById('connection-text');
-    
-    if (indicator && text) {
-        text.textContent = message;
-        
-        const colors = {
-            'success': '#2ecc71',
-            'warning': '#f39c12', 
-            'danger': '#e74c3c'
-        };
-        
-        indicator.style.borderTopColor = colors[type] || '#ffffff';
-    }
-}
-
-// ✅ Mise à jour du compteur de données
-function updateDataCount(count) {
-    dataCount = count;
-    const counter = document.getElementById('data-count');
-    if (counter) {
-        counter.textContent = `${count} positions`;
-    }
-}
-
-// ✅ Notification
-function showNotification(message, type = 'info') {
-    if (window.tbeamProcessor) {
-        window.tbeamProcessor.showNotification(message, type);
-    } else {
-        // Fallback simple
-        const toast = document.getElementById('notification-toast');
-        const messageEl = document.getElementById('notification-message');
-        if (toast && messageEl) {
-            messageEl.textContent = message;
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const c = cookies[i].trim();
+            if (c.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
+                break;
+            }
         }
     }
+    return cookieValue;
+}
+const ZONE_CSRF = getCookie('csrftoken');
+
+function geomToGeoJSON(layer) {
+    if (layer instanceof L.Circle) {
+        const c = layer.getLatLng();
+        return {
+            type: 'circle',
+            coordinates: [c.lng, c.lat],
+            radius: Math.round(layer.getRadius())
+        };
+    }
+    const latlngs = layer.getLatLngs()[0];
+    const ring = latlngs.map(p => [p.lng, p.lat]);
+    if (ring.length && ring[0][0] !== ring[ring.length - 1][0]) {
+        ring.push(ring[0]);
+    }
+    return { type: 'Polygon', coordinates: [ring] };
 }
 
-// ✅ Rafraîchissement global
-window.refreshMap = function() {
-    refreshMapData();
-};
+function startZoneDraw() {
+    new L.Draw.Polygon(map, { showArea: true }).enable();
+}
 
-// ✅ Nettoyage
-window.addEventListener('beforeunload', function() {
-    if (refreshInterval) {
-        clearInterval(refreshInterval);
+function openZoneModal() {
+    const list = document.getElementById('zone-animaux');
+    list.innerHTML = '<div class="text-muted small">Chargement…</div>';
+    fetch('/api/animaux/liste/').then(r => r.json()).then(data => {
+        const animaux = data.animaux || data.data || [];
+        if (!animaux.length) {
+            list.innerHTML = '<div class="text-muted small">Aucun animal à associer.</div>';
+            return;
+        }
+        list.innerHTML = animaux.map(a =>
+            `<div class="form-check"><input class="form-check-input" type="checkbox" value="${a.id}" id="zan-${a.id}"><label class="form-check-label" for="zan-${a.id}">${a.nom || ('Animal ' + a.id)}</label></div>`
+        ).join('');
+    }).catch(() => {
+        list.innerHTML = '<div class="text-muted small">Animaux indisponibles.</div>';
+    });
+    new bootstrap.Modal(document.getElementById('zoneModal')).show();
+}
+
+async function saveDrawnZone() {
+    if (!pendingLayer) return;
+    const nom = document.getElementById('zone-nom').value.trim();
+    if (!nom) {
+        alert('Veuillez donner un nom à la zone.');
+        return;
     }
+    const type_zone = document.getElementById('zone-type').value;
+    const animaux = Array.from(document.querySelectorAll('#zone-animaux input:checked')).map(i => parseInt(i.value, 10));
+    const polygone = geomToGeoJSON(pendingLayer);
+
+    try {
+        const res = await fetch('/api/zones/creer/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ZONE_CSRF },
+            body: JSON.stringify({ nom, type_zone, polygone, animaux })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            drawnItems.addLayer(pendingLayer);
+            pendingLayer = null;
+            bootstrap.Modal.getInstance(document.getElementById('zoneModal')).hide();
+            loadZones();
+            showToast('Zone de pâturage enregistrée', 'success');
+        } else {
+            alert(data.message || 'Erreur lors de l\'enregistrement.');
+        }
+    } catch (e) {
+        alert('Erreur de connexion.');
+    }
+}
+
+async function loadZones() {
+    try {
+        const res = await fetch('/api/zones/', { cache: 'no-cache' });
+        const data = await res.json();
+        Object.values(zoneLayers).forEach(l => map.removeLayer(l));
+        zoneLayers = {};
+        const zones = data.zones || [];
+        zones.forEach(renderZone);
+        document.getElementById('map-zones-count').textContent = zones.length;
+    } catch (e) {
+        console.error('Erreur chargement zones', e);
+    }
+}
+
+function renderZone(zone) {
+    const p = zone.polygone;
+    if (!p) return;
+    let layer;
+    if (p.type === 'circle') {
+        layer = L.circle([p.coordinates[1], p.coordinates[0]], { radius: p.radius });
+    } else {
+        const ring = (p.coordinates[0] || []).map(c => [c[1], c[0]]);
+        layer = L.polygon(ring);
+    }
+    layer.setStyle({
+        color: zone.couleur || '#1B3B2F',
+        fillColor: zone.couleur || '#1B3B2F',
+        fillOpacity: 0.15,
+        weight: 2
+    });
+    layer.bindPopup(`<strong>${zone.nom}</strong><br>${zone.type_zone}<br><button class="btn btn-sm btn-danger mt-2" onclick="deleteZone(${zone.id})">Supprimer</button>`);
+    layer.addTo(map);
+    zoneLayers[zone.id] = layer;
+}
+
+async function deleteZone(id) {
+    if (!confirm('Supprimer cette zone de pâturage ?')) return;
+    try {
+        const res = await fetch(`/api/zones/${id}/supprimer/`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': ZONE_CSRF }
+        });
+        if (res.ok) {
+            if (zoneLayers[id]) { map.removeLayer(zoneLayers[id]); delete zoneLayers[id]; }
+            loadZones();
+        } else {
+            alert('Échec de la suppression.');
+        }
+    } catch (e) {
+        alert('Erreur de connexion.');
+    }
+}
+
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) clearInterval(refreshInterval);
 });
 </script>
-
-<style>
-.custom-marker {
-    background: transparent !important;
-    border: none !important;
-}
-
-.marker-pulse {
-    animation: markerPulse 1s ease-in-out;
-}
-
-@keyframes markerPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-</style>
 {% endblock %}

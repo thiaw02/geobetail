@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=${DB_NAME:-geobetail}
+      - POSTGRES_USER=${DB_USER:-geobetail}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-geobetail}
+    volumes:
+      - geobetail_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-geobetail}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DB_ENGINE=postgres
+      - DB_NAME=${DB_NAME:-geobetail}
+      - DB_USER=${DB_USER:-geobetail}
+      - DB_PASSWORD=${DB_PASSWORD:-geobetail}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - MEDIA_ROOT=/app/data/media
+    volumes:
+      - geobetail_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  geobetail_data:
+  geobetail_pg:

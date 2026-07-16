@@ -1,0 +1,27 @@
+# Dépendances Python / environnement
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Fichiers locaux / secrets
+.env
+db.sqlite3
+*.sqlite3
+media/
+staticfiles/
+
+# Données / logs
+*.log
+.DS_Store
+
+# Développement front
+node_modules/
+
+# CI / éditeurs
+.git/
+.github/
+.idea/
+.vscode/

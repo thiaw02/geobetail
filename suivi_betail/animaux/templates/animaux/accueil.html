@@ -1,179 +1,354 @@
-{% extends "animaux/base.html" %}
+{% extends "animaux/base_public.html" %}
+{% load static %}
+
+{% block title %}Suivi GPS du bétail au Sénégal — GéoBétail{% endblock %}
+{% block meta_description %}Localisez votre troupeau en temps réel, soyez alerté dès qu'un animal quitte le pâturage et surveillez vos colliers connectés. GéoBétail, pensé pour les éleveurs sénégalais.{% endblock %}
+{% block og_title %}GéoBétail — Gardez un œil sur votre troupeau, où que vous soyez{% endblock %}
+{% block og_description %}Localisation, alertes de sécurité et surveillance pour vos animaux.{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ---------- HERO ---------- */
+    .hero { padding: var(--space-16) 0 var(--space-12); }
+    .hero-grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: var(--space-12);
+        align-items: center;
+    }
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-1) var(--space-3);
+        background: var(--color-bg-earth);
+        border: 1px solid var(--color-border-default);
+        border-radius: var(--radius-full);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--color-primary-forest);
+        margin-bottom: var(--space-5);
+    }
+    .hero-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); }
+    .hero h1 {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-extrabold);
+        font-size: clamp(2.1rem, 5vw, 3.25rem);
+        line-height: 1.1;
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-5);
+        letter-spacing: -0.02em;
+    }
+    .hero h1 .accent { color: var(--color-accent-gold-dark); }
+    .hero-sub {
+        font-size: var(--font-size-lg);
+        color: var(--color-text-secondary);
+        line-height: var(--line-height-relaxed);
+        max-width: 520px;
+        margin-bottom: var(--space-8);
+    }
+    .hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; margin-bottom: var(--space-8); }
+
+    .trust-card {
+        display: inline-flex;
+        gap: var(--space-8);
+        padding: var(--space-5) var(--space-6);
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-sm);
+        flex-wrap: wrap;
+    }
+    .trust-item .value {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-2xl);
+        color: var(--color-primary-forest);
+        line-height: 1;
+    }
+    .trust-item .label { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-1); }
+
+    /* ---------- HERO VISUAL (mockup CSS) ---------- */
+    .hero-visual { position: relative; }
+    .app-mock {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-2xl);
+        box-shadow: var(--shadow-xl);
+        overflow: hidden;
+    }
+    .app-mock-top {
+        display: flex; align-items: center; gap: var(--space-2);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-primary-forest);
+    }
+    .app-mock-top .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+    .app-mock-top .title { margin-left: var(--space-2); color: #fff; font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); }
+    .app-mock-map {
+        position: relative;
+        height: 210px;
+        background:
+            linear-gradient(0deg, rgba(27,59,47,0.05), rgba(27,59,47,0.05)),
+            repeating-linear-gradient(0deg, transparent 0 26px, rgba(27,59,47,0.06) 26px 27px),
+            repeating-linear-gradient(90deg, transparent 0 26px, rgba(27,59,47,0.06) 26px 27px),
+            var(--color-bg-earth);
+    }
+    .zone-blob {
+        position: absolute; inset: 24px 30px 40px 26px;
+        border: 2px dashed var(--color-accent-gold-dark);
+        border-radius: 42% 58% 55% 45% / 55% 45% 60% 40%;
+        background: rgba(201,162,39,0.08);
+    }
+    .pin { position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; box-shadow: var(--shadow-md); }
+    .pin.g { background: var(--color-success); top: 70px; left: 90px; }
+    .pin.g2 { background: var(--color-success); top: 120px; left: 150px; }
+    .pin.r { background: var(--color-danger); top: 46px; left: 210px; animation: pinpulse 2s ease-in-out infinite; }
+    @keyframes pinpulse { 0%,100% { box-shadow: 0 0 0 0 rgba(184,59,43,0.5); } 50% { box-shadow: 0 0 0 8px rgba(184,59,43,0); } }
+    .app-mock-body { padding: var(--space-4); display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .mock-stat { background: var(--color-bg-earth); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); }
+    .mock-stat .v { font-family: var(--font-family-heading); font-weight: var(--font-weight-bold); font-size: var(--font-size-lg); color: var(--color-primary-forest); }
+    .mock-stat .l { font-size: 0.68rem; color: var(--color-text-muted); }
+    .mock-alert {
+        grid-column: 1 / -1;
+        display: flex; align-items: center; gap: var(--space-3);
+        background: var(--color-danger-light);
+        border-radius: var(--radius-lg);
+        padding: var(--space-3) var(--space-4);
+        color: var(--color-danger);
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+    }
+
+    /* ---------- SECTIONS ---------- */
+    .section { padding: var(--space-16) 0; }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto var(--space-12); }
+    .section-head h2 {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-bold);
+        font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-3);
+        letter-spacing: -0.01em;
+    }
+    .section-head p { color: var(--color-text-secondary); font-size: var(--font-size-lg); }
+
+    /* ---------- FEATURES ---------- */
+    .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-6); }
+    .feature-card {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-6);
+        transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+    }
+    .feature-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: var(--color-accent-gold); }
+    .feature-ico {
+        width: 52px; height: 52px; border-radius: var(--radius-xl);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: var(--space-5);
+        background: var(--color-success-light); color: var(--color-primary-forest);
+    }
+    .feature-card:nth-child(2) .feature-ico { background: var(--color-danger-light); color: var(--color-danger); }
+    .feature-card:nth-child(3) .feature-ico { background: var(--color-warning-light); color: var(--color-accent-gold-dark); }
+    .feature-card:nth-child(4) .feature-ico { background: var(--color-info-light); color: var(--color-info); }
+    .feature-card:hover .feature-ico svg { transform: scale(1.12); }
+    .feature-ico svg { transition: transform var(--transition-base); }
+    .feature-card h3 {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-semibold);
+        font-size: var(--font-size-md);
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-2);
+    }
+    .feature-card p { color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: var(--line-height-relaxed); }
+
+    /* ---------- HOW IT WORKS ---------- */
+    .steps-band { background: var(--color-bg-earth); }
+    .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
+    .step { text-align: center; }
+    .step-num {
+        width: 56px; height: 56px; border-radius: var(--radius-full);
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto var(--space-5);
+        background: var(--color-primary-forest); color: var(--color-accent-gold);
+        font-family: var(--font-family-heading); font-weight: var(--font-weight-bold); font-size: var(--font-size-xl);
+    }
+    .step h3 { font-family: var(--font-family-heading); font-weight: var(--font-weight-semibold); font-size: var(--font-size-md); margin-bottom: var(--space-2); color: var(--color-text-primary); }
+    .step p { color: var(--color-text-secondary); font-size: var(--font-size-sm); line-height: var(--line-height-relaxed); max-width: 280px; margin: 0 auto; }
+
+    /* ---------- CTA ---------- */
+    .cta-band { padding: var(--space-16) 0; }
+    .cta-box {
+        background: linear-gradient(135deg, var(--color-primary-forest) 0%, var(--color-primary-foliage) 100%);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-16) var(--space-8);
+        text-align: center;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .cta-box::after {
+        content: ''; position: absolute; top: -40%; right: -10%;
+        width: 480px; height: 480px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(201,162,39,0.18) 0%, transparent 70%);
+    }
+    .cta-box h2 {
+        font-family: var(--font-family-heading);
+        font-weight: var(--font-weight-bold);
+        font-size: clamp(1.6rem, 3.5vw, 2.25rem);
+        margin-bottom: var(--space-3);
+        position: relative;
+    }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: var(--space-8); position: relative; }
+    .cta-box .btn { position: relative; }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 1023px) {
+        .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+        .hero-grid { grid-template-columns: 1fr; gap: var(--space-10); }
+        .hero-visual { order: 2; }
+        .steps-grid { grid-template-columns: 1fr; gap: var(--space-10); }
+    }
+    @media (max-width: 599px) {
+        .hero { padding: var(--space-10) 0; }
+        .hero-actions { flex-direction: column; }
+        .hero-actions .btn { width: 100%; }
+        .trust-card { gap: var(--space-5); width: 100%; justify-content: space-between; }
+        .features-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<style>
-    /* ---------- Styles généraux ---------- */
-    body {
-        background: linear-gradient(135deg, #4e1b9b, #7a2fc9, #c471ed);
-        font-family: 'Poppins', sans-serif;
-        color: #fff;
-        overflow-x: hidden;
-    }
+<!-- ============ HERO ============ -->
+<section class="hero">
+    <div class="container hero-grid">
+        <div class="hero-text">
+            <span class="hero-badge"><span class="dot"></span> Suivi GPS/LoRa en temps réel</span>
+            <h1>Gardez un œil sur votre troupeau, <span class="accent">où que vous soyez</span></h1>
+            <p class="hero-sub">Localisation, alertes de sécurité et suivi de vos animaux, pensés pour les éleveurs sénégalais.</p>
+            <div class="hero-actions">
+                <a href="{% url 'animaux:inscription' %}" class="btn btn-primary btn-lg">Créer un compte</a>
+                <a href="{% url 'animaux:connexion' %}" class="btn btn-outline btn-lg">Se connecter</a>
+            </div>
+            <div class="trust-card">
+                <div class="trust-item">
+                    <div class="value">24/7</div>
+                    <div class="label">Surveillance continue</div>
+                </div>
+                <div class="trust-item">
+                    <div class="value">~5 m</div>
+                    <div class="label">Précision GPS</div>
+                </div>
+                <div class="trust-item">
+                    <div class="value">0 FCFA</div>
+                    <div class="label">Pour commencer</div>
+                </div>
+            </div>
+        </div>
 
-    .hero {
-        text-align: center;
-        padding: 6rem 2rem;
-        position: relative;
-        z-index: 2;
-    }
-
-    .hero h1 {
-        font-size: 3.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #ffffff, #d4b5ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 1rem;
-    }
-
-    .hero p {
-        font-size: 1.3rem;
-        opacity: 0.9;
-        margin-bottom: 2.5rem;
-    }
-
-    .hero .btn {
-        border-radius: 50px;
-        padding: 1rem 2.5rem;
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin: 0.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, #ff6b6b, #ff9a3c);
-        border: none;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-5px);
-        background: linear-gradient(135deg, #ff8e8e, #ffa15c);
-    }
-
-    .btn-outline-light {
-        border: 2px solid white;
-        color: white;
-        background: transparent;
-    }
-
-    .btn-outline-light:hover {
-        background: white;
-        color: #6a0dad;
-    }
-
-    /* ---------- Section Services ---------- */
-    .services {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 2rem;
-        padding: 5rem 2rem;
-    }
-
-    .service-card {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 2rem;
-        width: 300px;
-        text-align: center;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    .service-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
-    }
-
-    .service-card i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        color: #ffb6ff;
-    }
-
-    .service-card h3 {
-        margin-bottom: 0.8rem;
-        font-weight: 700;
-        color: #fff;
-    }
-
-    .service-card p {
-        font-size: 1rem;
-        opacity: 0.85;
-    }
-
-    /* ---------- Effet vague bas ---------- */
-    .wave {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 150px;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff10" fill-opacity="1" d="M0,96L48,122.7C96,149,192,203,288,197.3C384,192,480,128,576,106.7C672,85,768,107,864,144C960,181,1056,235,1152,240C1248,245,1344,203,1392,181.3L1440,160V320H0Z"></path></svg>');
-        background-size: cover;
-        animation: wave 10s linear infinite;
-        opacity: 0.3;
-    }
-
-    @keyframes wave {
-        from { background-position-x: 0; }
-        to { background-position-x: 1000px; }
-    }
-
-    /* ---------- Footer ---------- */
-    footer {
-        text-align: center;
-        padding: 2rem;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 0.9rem;
-    }
-
-</style>
-
-<div class="hero">
-    <h1><i class="fas fa-tractor"></i> Bienvenue sur <strong>GeoBétail</strong></h1>
-    <p>La solution de suivi intelligent et en temps réel pour vos troupeaux.</p>
-    <a href="{% url 'inscription' %}" class="btn btn-primary">
-        <i class="fas fa-user-plus me-2"></i>Créer un compte
-    </a>
-    <a href="{% url 'login' %}" class="btn btn-outline-light">
-        <i class="fas fa-sign-in-alt me-2"></i>Se connecter
-    </a>
-</div>
-
-<section class="services">
-    <div class="service-card">
-        <i class="fas fa-map-marked-alt"></i>
-        <h3>Suivi GPS</h3>
-        <p>Localisez vos animaux en temps réel grâce à notre technologie de géolocalisation intégrée.</p>
-    </div>
-
-    <div class="service-card">
-        <i class="fas fa-bell"></i>
-        <h3>Alertes instantanées</h3>
-        <p>Recevez une alerte immédiate en cas de mouvement suspect ou de sortie de zone.</p>
-    </div>
-
-    <div class="service-card">
-        <i class="fas fa-camera"></i>
-        <h3>Surveillance visuelle</h3>
-        <p>Grâce à la caméra ESP32-CAM, surveillez vos bétails directement depuis votre tableau de bord.</p>
-    </div>
-
-    <div class="service-card">
-        <i class="fas fa-satellite"></i>
-        <h3>Colliers connectés</h3>
-        <p>Des colliers IoT T-Beam pour un suivi fiable, même dans les zones reculées.</p>
+        <div class="hero-visual reveal">
+            <div class="app-mock">
+                <div class="app-mock-top">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    <span class="title">GéoBétail — Carte en direct</span>
+                </div>
+                <div class="app-mock-map">
+                    <div class="zone-blob"></div>
+                    <span class="pin g"></span>
+                    <span class="pin g2"></span>
+                    <span class="pin r"></span>
+                </div>
+                <div class="app-mock-body">
+                    <div class="mock-stat"><div class="v">12</div><div class="l">Animaux suivis</div></div>
+                    <div class="mock-stat"><div class="v">11</div><div class="l">Dans la zone</div></div>
+                    <div class="mock-alert">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        1 animal a quitté le pâturage
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<div class="wave"></div>
+<!-- ============ FONCTIONNALITÉS ============ -->
+<section class="section" id="fonctionnalites">
+    <div class="container">
+        <div class="section-head reveal">
+            <h2>Tout ce dont vous avez besoin</h2>
+            <p>L'essentiel pour protéger votre troupeau, sans complexité.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feature-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                </div>
+                <h3>Carte en direct</h3>
+                <p>Localisez chaque collier en un coup d'œil sur une carte claire.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+                <h3>Alertes sortie de zone</h3>
+                <p>Soyez notifié dès qu'un animal quitte le pâturage autorisé.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                </div>
+                <h3>Surveillance visuelle</h3>
+                <p>Gardez un œil sur vos bêtes grâce au flux caméra en direct.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-ico">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+                </div>
+                <h3>Colliers connectés</h3>
+                <p>Ajoutez un collier par code ou scan QR en 30 secondes.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
-<footer>
-    © {{ now|date:"Y" }} GeoBétail — Votre solution de suivi intelligent pour les éleveurs africains.
-</footer>
+<!-- ============ COMMENT ÇA MARCHE ============ -->
+<section class="section steps-band" id="comment">
+    <div class="container">
+        <div class="section-head reveal">
+            <h2>Simple à démarrer</h2>
+            <p>Trois étapes pour suivre votre troupeau.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step reveal">
+                <div class="step-num">1</div>
+                <h3>Ajoutez votre collier</h3>
+                <p>Entrez le code ou scannez le QR du collier pour l'associer à votre compte.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">2</div>
+                <h3>Dessinez vos zones</h3>
+                <p>Délimitez vos pâturages directement sur la carte, en quelques clics.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">3</div>
+                <h3>Suivez en temps réel</h3>
+                <p>Visualisez vos animaux et recevez une alerte au moindre écart.</p>
+            </div>
+        </div>
+    </div>
+</section>
 
+<!-- ============ CTA FINAL ============ -->
+<section class="cta-band">
+    <div class="container">
+        <div class="cta-box reveal">
+            <h2>Prêt à protéger votre troupeau ?</h2>
+            <p>Créez votre compte gratuitement, aucune carte bancaire requise.</p>
+            <a href="{% url 'animaux:inscription' %}" class="btn btn-light btn-lg">Créer un compte</a>
+        </div>
+    </div>
+</section>
 {% endblock %}

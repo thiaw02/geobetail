@@ -1,26 +1,147 @@
-{% extends "animaux/base.html" %}
+{% extends "animaux/base_auth.html" %}
+
+{% block title %}Créer un compte — GéoBétail{% endblock %}
+{% block meta_description %}Créez votre compte GéoBétail pour suivre votre troupeau.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card { gap: 0; }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 44px; }
+    .password-toggle {
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+        width: 36px; height: 36px; border: none; background: transparent;
+        color: var(--color-text-muted); cursor: pointer; border-radius: var(--radius-md);
+    }
+    .password-toggle:hover { color: var(--color-primary-forest); background: var(--color-bg-earth); }
+    .strength { margin-top: var(--space-2); }
+    .strength-bar { height: 6px; border-radius: 999px; background: var(--color-border-light); overflow: hidden; }
+    .strength-fill { height: 100%; width: 0; transition: width .25s, background .25s; }
+    .strength-label { font-size: var(--font-size-xs); margin-top: var(--space-1); color: var(--color-text-muted); }
+    .field-error { color: var(--color-danger); font-size: var(--font-size-xs); margin-top: var(--space-2); display: none; }
+    .field-error.show { display: block; }
+    .cgu-box { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: var(--space-5) 0; display: flex; gap: var(--space-3); align-items: flex-start; }
+    .cgu-box input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; }
+    .cgu-box a { color: var(--color-primary-forest); font-weight: var(--font-weight-semibold); }
+    .cgu-box a:hover { text-decoration: underline; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container py-5 text-center text-light">
+<div class="auth-header">
     <h1>Créer un compte</h1>
-    <p>Remplissez les informations pour vous inscrire sur GeoBétail.</p>
-
-    <form method="post" class="mt-4 mx-auto" style="max-width:400px;">
-        {% csrf_token %}
-        <div class="form-group mb-3">
-            <input type="text" name="username" class="form-control" placeholder="Nom d’utilisateur" required>
-        </div>
-        <div class="form-group mb-3">
-            <input type="email" name="email" class="form-control" placeholder="Adresse e-mail" required>
-        </div>
-        <div class="form-group mb-3">
-            <input type="password" name="password" class="form-control" placeholder="Mot de passe" required>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">S’inscrire</button>
-    </form>
-
-    <p class="mt-4">
-        Vous avez déjà un compte ? <a href="{% url 'login' %}" class="text-warning">Connectez-vous</a>
-    </p>
+    <p>Commencez à suivre votre troupeau en quelques minutes</p>
 </div>
+
+<form method="post" novalidate id="inscription-form">
+    {% csrf_token %}
+
+    <div class="form-group">
+        <label for="{{ form.nom_complet.id_for_label }}">Nom complet</label>
+        {{ form.nom_complet }}
+        <div class="field-error" id="err-nom">Veuillez indiquer votre nom complet.</div>
+        {% if form.nom_complet.errors %}<ul class="errorlist">{% for e in form.nom_complet.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.identifiant.id_for_label }}">Email ou téléphone</label>
+        {{ form.identifiant }}
+        <div class="field-error" id="err-identifiant">Entrez une adresse e-mail ou un numéro de téléphone valide.</div>
+        {% if form.identifiant.errors %}<ul class="errorlist">{% for e in form.identifiant.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.password1.id_for_label }}">Mot de passe</label>
+        <div class="password-wrap">
+            {{ form.password1 }}
+            <button type="button" class="password-toggle" data-target="id_password1" aria-label="Afficher le mot de passe" tabindex="-1">
+                <i class="fas fa-eye"></i>
+            </button>
+        </div>
+        <div class="strength">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <div class="strength-label" id="strength-label">Trop court</div>
+        </div>
+        <div class="field-error" id="err-password1">Le mot de passe est trop faible.</div>
+        {% if form.password1.errors %}<ul class="errorlist">{% for e in form.password1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.password2.id_for_label }}">Confirmer le mot de passe</label>
+        <div class="password-wrap">
+            {{ form.password2 }}
+            <button type="button" class="password-toggle" data-target="id_password2" aria-label="Afficher le mot de passe" tabindex="-1">
+                <i class="fas fa-eye"></i>
+            </button>
+        </div>
+        <div class="field-error" id="err-password2">Les deux mots de passe ne correspondent pas.</div>
+        {% if form.password2.errors %}<ul class="errorlist">{% for e in form.password2.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <label class="cgu-box">
+        {{ form.cgu }}
+        <span>J'accepte les <a href="#">Conditions Générales d'Utilisation</a> et la <a href="#">politique de confidentialité</a>.</span>
+    </label>
+    <div class="field-error" id="err-cgu" style="margin-top:-12px;margin-bottom:12px;">{% for e in form.cgu.errors %}{{ e }}{% endfor %}</div>
+
+    <button type="submit" class="btn">Créer un compte</button>
+</form>
+
+<div class="auth-footer">
+    Déjà un compte ? <a href="{% url 'animaux:connexion' %}">Se connecter</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const form = document.getElementById('inscription-form');
+    const nom = document.getElementById('id_nom_complet');
+    const ident = document.getElementById('id_identifiant');
+    const p1 = document.getElementById('id_password1');
+    const p2 = document.getElementById('id_password2');
+    const cgu = document.getElementById('id_cgu');
+    const fill = document.getElementById('strength-fill');
+    const slabel = document.getElementById('strength-label');
+
+    document.querySelectorAll('.password-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const el = document.getElementById(btn.dataset.target);
+            const show = el.type === 'password';
+            el.type = show ? 'text' : 'password';
+            btn.innerHTML = show ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+        });
+    });
+
+    const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+    const isPhone = v => /^\+?\d[\d\s.\-]{6,}$/.test(v);
+
+    function showErr(id, on) { document.getElementById(id).classList.toggle('show', on); }
+
+    function scorePassword(v) {
+        let s = 0;
+        if (v.length >= 8) s++;
+        if (/[A-Z]/.test(v)) s++;
+        if (/\d/.test(v)) s++;
+        if (/[^A-Za-z0-9]/.test(v)) s++;
+        return s;
+    }
+
+    if (nom) nom.addEventListener('blur', () => showErr('err-nom', !nom.value.trim()));
+    if (ident) ident.addEventListener('blur', () => {
+        const v = ident.value.trim();
+        showErr('err-identifiant', v.length > 0 && !isEmail(v) && !isPhone(v));
+    });
+    if (p1) p1.addEventListener('input', () => {
+        const s = scorePassword(p1.value);
+        const pct = [0, 25, 50, 75, 100][s];
+        const col = ['var(--color-danger)', 'var(--color-danger)', 'var(--color-warning)', 'var(--color-accent-gold)', 'var(--color-success)'][s];
+        const lab = ['Trop court', 'Faible', 'Moyen', 'Fort', 'Très fort'][s];
+        fill.style.width = pct + '%'; fill.style.background = col; slabel.textContent = lab;
+        showErr('err-password1', p1.value.length > 0 && s < 3);
+    });
+    if (p2) p2.addEventListener('input', () => showErr('err-password2', p2.value.length > 0 && p2.value !== p1.value));
+    if (cgu) cgu.addEventListener('change', () => showErr('err-cgu', !cgu.checked));
+})();
+</script>
 {% endblock %}
