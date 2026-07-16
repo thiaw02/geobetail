@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.models import User
 
-from animaux.models import Alerte, Device
+from animaux.models import Alerte, Animal, Device, JournalAudit, SignalementVol, Zone
 
 
 class StyledFormMixin:
@@ -82,6 +82,53 @@ class DeviceForm(StyledFormMixin, forms.ModelForm):
         ]
         widgets = {
             'date_appairage': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+
+class AnimalForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Animal
+        fields = [
+            'nom', 'type_animal', 'race', 'date_naissance',
+            'device', 'statut', 'emoji', 'couleur',
+        ]
+        widgets = {
+            'date_naissance': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+
+class ZoneForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = Zone
+        fields = [
+            'nom', 'description', 'type_zone', 'couleur', 'animaux', 'polygone',
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'polygone': forms.Textarea(attrs={
+                'rows': 4,
+                'placeholder': 'GeoJSON, ex: {"type":"Polygon","coordinates":[[[0,0],[0,1],[1,1],[1,0],[0,0]]]}',
+            }),
+            'animaux': forms.CheckboxSelectMultiple(),
+        }
+
+
+class SignalementVolForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = SignalementVol
+        fields = ['animal', 'proprietaire', 'position', 'statut', 'commentaire']
+        widgets = {
+            'commentaire': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+class JournalAuditForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = JournalAudit
+        fields = ['utilisateur_cible', 'action', 'auteur', 'date', 'detail']
+        widgets = {
+            'detail': forms.Textarea(attrs={'rows': 3}),
+            'date': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
 
 

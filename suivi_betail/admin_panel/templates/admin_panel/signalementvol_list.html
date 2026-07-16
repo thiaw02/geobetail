@@ -1,0 +1,73 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Signalements de vol - Gestion GeoBétail{% endblock %}
+{% block page_title %}Signalements de vol{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Signalements de vol</h2>
+        <p>{{ page_obj.paginator.count }} signalement{{ page_obj.paginator.count|pluralize }} enregistré{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if signalements %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Animal</th>
+                        <th>Propriétaire</th>
+                        <th>Statut</th>
+                        <th>Commentaire</th>
+                        <th>Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in signalements %}
+                    <tr>
+                        <td><strong>{{ s.animal.nom }}</strong></td>
+                        <td>{{ s.proprietaire.username|default:"—" }}</td>
+                        <td>
+                            {% if s.statut == 'NOUVEAU' %}
+                                <span class="badge badge-danger">{{ s.get_statut_display }}</span>
+                            {% elif s.statut == 'EN_COURS' %}
+                                <span class="badge badge-warning">{{ s.get_statut_display }}</span>
+                            {% elif s.statut == 'RESOLU' %}
+                                <span class="badge badge-success">{{ s.get_statut_display }}</span>
+                            {% elif s.statut == 'FAUX' %}
+                                <span class="badge badge-muted">{{ s.get_statut_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ s.commentaire|truncatechars:80|default:"—" }}</td>
+                        <td>{{ s.date_creation|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'admin_panel:signalementvol_update' s.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="{% url 'admin_panel:signalementvol_delete' s.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="empty-state-title">Aucun signalement de vol</div>
+            <p class="text-muted">Aucun signalement de vol n'a été enregistré pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

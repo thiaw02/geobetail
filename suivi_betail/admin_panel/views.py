@@ -9,14 +9,18 @@ from django.views.generic import (
     DeleteView,
 )
 
-from animaux.models import Alerte, Device
+from animaux.models import Alerte, Animal, Device, JournalAudit, SignalementVol, Zone
 
 from .mixins import AdminRequiredMixin
 from .forms import (
     AlerteForm,
+    AnimalForm,
     DeviceForm,
+    JournalAuditForm,
+    SignalementVolForm,
     UserCreateForm,
     UserEditForm,
+    ZoneForm,
 )
 
 
@@ -36,9 +40,11 @@ class AdminDashboardView(AdminRequiredMixin, TemplateView):
             'devices_total': Device.objects.count(),
             'devices_paired': Device.objects.filter(est_appaire=True).count(),
             'alertes_actives': Alerte.objects.filter(resolue=False).count(),
+            'signalements_vol_actifs': SignalementVol.objects.exclude(statut__in=['RESOLU', 'FAUX']).count(),
         }
         ctx['recent_users'] = users.order_by('-date_joined')[:5]
         ctx['recent_alertes'] = Alerte.objects.filter(resolue=False).order_by('-date_creation')[:5]
+        ctx['recent_signalements'] = SignalementVol.objects.exclude(statut__in=['RESOLU', 'FAUX']).order_by('-date_creation')[:5]
         return ctx
 
 
@@ -158,3 +164,128 @@ class AlerteDeleteView(AdminRequiredMixin, DeleteView):
         ctx['cancel_url'] = self.success_url
         ctx['obj_type'] = 'Alerte'
         return ctx
+
+
+# ============================================================================
+# Animaux
+# ============================================================================
+class AnimalListView(AdminRequiredMixin, ListView):
+    model = Animal
+    template_name = 'admin_panel/animal_list.html'
+    context_object_name = 'animals'
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = Animal.objects.select_related('device').order_by('nom')
+        q = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(nom__icontains=q)
+        statut = self.request.GET.get('statut')
+        if statut:
+            qs = qs.filter(statut=statut)
+        type_animal = self.request.GET.get('type_animal')
+        if type_animal:
+            qs = qs.filter(type_animal=type_animal)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['statut_choices'] = Animal.STATUT_CHOICES
+        ctx['type_animal_choices'] = Animal.TYPE_ANIMAL_CHOICES
+        return ctx
+
+
+class AnimalUpdateView(AdminRequiredMixin, UpdateView):
+    model = Animal
+    form_class = AnimalForm
+    template_name = 'admin_panel/animal_form.html'
+    success_url = reverse_lazy('admin_panel:animal_list')
+
+
+class AnimalDeleteView(AdminRequiredMixin, DeleteView):
+    model = Animal
+    template_name = 'admin_panel/confirm_delete.html'
+    success_url = reverse_lazy('admin_panel:animal_list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['cancel_url'] = self.success_url
+        ctx['obj_type'] = 'Animal'
+        return ctx
+
+
+# ============================================================================
+# Zones
+# ============================================================================
+class ZoneListView(AdminRequiredMixin, ListView):
+    model = Zone
+    template_name = 'admin_panel/zone_list.html'
+    context_object_name = 'zones'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Zone.objects.prefetch_related('animaux').order_by('nom')
+
+
+class ZoneUpdateView(AdminRequiredMixin, UpdateView):
+    model = Zone
+    form_class = ZoneForm
+    template_name = 'admin_panel/zone_form.html'
+    success_url = reverse_lazy('admin_panel:zone_list')
+
+
+class ZoneDeleteView(AdminRequiredMixin, DeleteView):
+    model = Zone
+    template_name = 'admin_panel/confirm_delete.html'
+    success_url = reverse_lazy('admin_panel:zone_list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['cancel_url'] = self.success_url
+        ctx['obj_type'] = 'Zone de pâturage'
+        return ctx
+
+
+# ============================================================================
+# Signalements de vol
+# ============================================================================
+class SignalementVolListView(AdminRequiredMixin, ListView):
+    model = SignalementVol
+    template_name = 'admin_panel/signalementvol_list.html'
+    context_object_name = 'signalements'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return SignalementVol.objects.select_related('animal', 'proprietaire').order_by('-date_creation')
+
+
+class SignalementVolUpdateView(AdminRequiredMixin, UpdateView):
+    model = SignalementVol
+    form_class = SignalementVolForm
+    template_name = 'admin_panel/signalementvol_form.html'
+    success_url = reverse_lazy('admin_panel:signalementvol_list')
+
+
+class SignalementVolDeleteView(AdminRequiredMixin, DeleteView):
+    model = SignalementVol
+    template_name = 'admin_panel/confirm_delete.html'
+    success_url = reverse_lazy('admin_panel:signalementvol_list')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['cancel_url'] = self.success_url
+        ctx['obj_type'] = 'Signalement de vol'
+        return ctx
+
+
+# ============================================================================
+# Journaux d'audit
+# ============================================================================
+class JournalAuditListView(AdminRequiredMixin, ListView):
+    model = JournalAudit
+    template_name = 'admin_panel/journalaudit_list.html'
+    context_object_name = 'journaux'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return JournalAudit.objects.select_related('utilisateur_cible', 'auteur').order_by('-date')

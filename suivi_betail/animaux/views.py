@@ -83,7 +83,9 @@ def dashboard(request):
 
 def animaux_list(request):
     """Liste des animaux"""
-    return render(request, 'animaux/animaux_list.html')
+    return render(request, 'animaux/animaux_list.html', {
+        'is_superuser': getattr(request.user, 'is_superuser', False),
+    })
 
 def map_view(request):
     """Carte de suivi"""

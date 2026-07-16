@@ -1,0 +1,31 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}{% if object %}Modifier{% else %}Nouvelle{% endif %} zone - Gestion GeoBétail{% endblock %}
+{% block page_title %}Zones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>{% if object %}Modifier la zone{% else %}Nouvelle zone{% endif %}</h2>
+        <p>{% if object %}{{ object.nom }}{% else %}Définir une zone de pâturage ou de surveillance{% endif %}</p>
+    </div>
+    <a href="{% url 'admin_panel:zone_list' %}" class="btn btn-ghost">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" class="admin-form" novalidate>
+            {% csrf_token %}
+            {% include "admin_panel/_form_fields.html" %}
+            <div class="form-actions row mt-4">
+                <a href="{% url 'admin_panel:zone_list' %}" class="btn btn-outline">Annuler</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

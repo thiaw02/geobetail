@@ -205,9 +205,11 @@
     <h1><i class="fas fa-list icon-pulse"></i> Liste des Animaux</h1>
     <div class="filters-bar">
         <input type="text" class="search-input" placeholder="Rechercher un animal..." id="search-input">
+        {% if user.is_superuser %}
         <a href="/admin/animaux/animal/add/" class="btn btn-accent">
             <i class="fas fa-plus"></i> Ajouter
         </a>
+        {% endif %}
         <button class="btn btn-outline" onclick="refreshAnimalsList()">
             <i class="fas fa-sync-alt"></i> Actualiser
         </button>
@@ -268,6 +270,8 @@ window.addEventListener('beforeunload', function() {
     if (animalsInterval) clearInterval(animalsInterval);
 });
 
+const isSuperuser = {% if is_superuser %}true{% else %}false{% endif %};
+
 async function refreshAnimalsList() {
     try {
         const [animauxRes, statsRes] = await Promise.all([
@@ -297,16 +301,15 @@ function updateAnimalsTable(animaux) {
     const tbody = document.getElementById('animals-table-body');
     
     if (!animaux || animaux.length === 0) {
+        const adminLink = isSuperuser ? `<a href="/admin/animaux/animal/add/" class="btn btn-primary btn-sm mt-3"><i class="fas fa-plus"></i> Ajouter le premier animal</a>` : '';
         tbody.innerHTML = `
             <tr>
                 <td colspan="8">
                     <div class="empty-state">
                         <div class="empty-state-icon"><i class="fas fa-paw icon-pulse"></i></div>
                         <div class="empty-state-title">Aucun animal enregistré</div>
-                        <p class="text-muted">Commencez par ajouter un animal depuis l'administration.</p>
-                        <a href="/admin/animaux/animal/add/" class="btn btn-primary btn-sm mt-3">
-                            <i class="fas fa-plus"></i> Ajouter le premier animal
-                        </a>
+                        <p class="text-muted">Les animaux apparaîtront ici une fois ajoutés.</p>
+                        ${adminLink}
                     </div>
                 </td>
             </tr>
@@ -339,9 +342,11 @@ function updateAnimalsTable(animaux) {
                     <a href="{% url 'animaux:map' %}" class="btn btn-sm btn-outline" title="Voir sur la carte">
                         <i class="fas fa-map-marker-alt"></i>
                     </a>
+                    {% if is_superuser %}
                     <a href="/admin/animaux/animal/${animal.id}/change/" class="btn btn-sm btn-outline" title="Modifier">
                         <i class="fas fa-edit"></i>
                     </a>
+                    {% endif %}
                 </div>
             </td>
         </tr>

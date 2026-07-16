@@ -4,6 +4,7 @@ import random
 from datetime import datetime, timedelta
 
 import django
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 
@@ -17,6 +18,7 @@ class Command(BaseCommand):
         self.stdout.write('Création des données de test...')
         
         # Créer un superutilisateur Django si inexistant
+        # Mot de passe de démo uniquement ; ne pas utiliser en production.
         if not User.objects.filter(username='admin').exists():
             admin_user = User.objects.create_superuser(
                 username='admin',
@@ -28,6 +30,7 @@ class Command(BaseCommand):
             self.stdout.write('Superutilisateur Django créé: admin/admin123 (accès /admin/)')
         
         # Créer un compte superviseur admin_panel si inexistant
+        # Mot de passe de démo uniquement ; ne pas utiliser en production.
         if not User.objects.filter(username='superviseur').exists():
             superv = User.objects.create_user(
                 username='superviseur',
@@ -40,6 +43,16 @@ class Command(BaseCommand):
             superv.profile.save()
             self.stdout.write('Superviseur admin_panel créé: superviseur/superviseur123 (accès /admin_panel/)')
         
+        # Garde-fou production : avertir si des comptes de démo sont présents en DEBUG=False
+        if not settings.DEBUG:
+            demo_accounts = User.objects.filter(username__in=['admin', 'superviseur'])
+            if demo_accounts.exists():
+                self.stderr.write(
+                    self.style.WARNING(
+                        'ATTENTION : des comptes de démo sont présents en production. '
+                        'Supprimez-les ou changez leurs mots de passe.'
+                    )
+                )
         # Créer un utilisateur test
         user, created = User.objects.get_or_create(
             username='eleveur',

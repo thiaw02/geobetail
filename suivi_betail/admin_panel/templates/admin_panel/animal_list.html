@@ -1,0 +1,104 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Animaux - Gestion GeoBétail{% endblock %}
+{% block page_title %}Animaux{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Animaux</h2>
+        <p>{{ page_obj.paginator.count }} animal{{ page_obj.paginator.count|pluralize }} enregistré{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="toolbar">
+    <form method="get" class="search-form">
+        <input type="search" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Rechercher par nom...">
+        <button type="submit" class="btn btn-outline"><i class="fas fa-search"></i></button>
+        {% if request.GET.q %}
+            <a href="{% url 'admin_panel:animal_list' %}" class="btn btn-ghost">Réinitialiser</a>
+        {% endif %}
+    </form>
+    <select name="statut" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+        <option value="">Tous les statuts</option>
+        {% for val, label in statut_choices %}
+        <option value="{{ val }}" {% if request.GET.statut == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+    <select name="type_animal" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+        <option value="">Tous les types</option>
+        {% for val, label in type_animal_choices %}
+        <option value="{{ val }}" {% if request.GET.type_animal == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if animals %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Type</th>
+                        <th>Race</th>
+                        <th>Collier</th>
+                        <th>Statut</th>
+                        <th>Dernier contact</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in animals %}
+                    <tr>
+                        <td><strong>{{ a.nom }}</strong></td>
+                        <td>{{ a.get_type_animal_display }}</td>
+                        <td>{{ a.race|default:"—" }}</td>
+                        <td>
+                            {% if a.device %}
+                                <code>{{ a.device.device_id }}</code>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if a.statut == 'ACTIF' %}
+                                <span class="badge badge-success">Actif</span>
+                            {% elif a.statut == 'INACTIF' %}
+                                <span class="badge badge-muted">Inactif</span>
+                            {% elif a.statut == 'PERDU' %}
+                                <span class="badge badge-warning">Perdu</span>
+                            {% elif a.statut == 'MORT' %}
+                                <span class="badge badge-danger">Mort</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ a.date_dernier_contact|date:"d/m/Y H:i"|default:"—" }}</td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'admin_panel:animal_update' a.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="{% url 'admin_panel:animal_delete' a.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-paw"></i></div>
+            <div class="empty-state-title">Aucun animal trouvé</div>
+            <p class="text-muted">Ajustez votre recherche ou les filtres appliqués.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

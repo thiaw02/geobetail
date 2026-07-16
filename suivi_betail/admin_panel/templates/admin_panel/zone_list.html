@@ -1,0 +1,68 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Zones - Gestion GeoBétail{% endblock %}
+{% block page_title %}Zones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Zones</h2>
+        <p>{{ page_obj.paginator.count }} zone{{ page_obj.paginator.count|pluralize }} enregistrée{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if zones %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Couleur</th>
+                        <th>Date de création</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for z in zones %}
+                    <tr>
+                        <td><strong>{{ z.nom }}</strong></td>
+                        <td>{{ z.get_type_zone_display }}</td>
+                        <td>{{ z.description|truncatechars:80|default:"—" }}</td>
+                        <td>
+                            <span class="d-inline-flex align-items-center gap-2">
+                                <span class="badge" style="background: {{ z.couleur }}; color: #fff;">&nbsp;</span>
+                                <code>{{ z.couleur }}</code>
+                            </span>
+                        </td>
+                        <td>{{ z.date_creation|date:"d/m/Y" }}</td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{% url 'admin_panel:zone_update' z.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <a href="{% url 'admin_panel:zone_delete' z.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-draw-polygon"></i></div>
+            <div class="empty-state-title">Aucune zone trouvée</div>
+            <p class="text-muted">Aucune zone n'a été configurée pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

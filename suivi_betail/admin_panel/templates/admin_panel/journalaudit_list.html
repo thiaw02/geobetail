@@ -1,0 +1,52 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Journaux d'audit - Gestion GeoBétail{% endblock %}
+{% block page_title %}Journaux d'audit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Journaux d'audit</h2>
+        <p>{{ page_obj.paginator.count }} entrée{{ page_obj.paginator.count|pluralize }} enregistrée{{ page_obj.paginator.count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if journaux %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Utilisateur cible</th>
+                        <th>Auteur</th>
+                        <th>Détail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for j in journaux %}
+                    <tr>
+                        <td>{{ j.date|date:"d/m/Y H:i" }}</td>
+                        <td>{{ j.get_action_display }}</td>
+                        <td>{{ j.utilisateur_cible.username|default:"—" }}</td>
+                        <td>{{ j.auteur.username|default:"—" }}</td>
+                        <td>{{ j.detail|truncatechars:120|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-book"></i></div>
+            <div class="empty-state-title">Aucune entrée de journal</div>
+            <p class="text-muted">Aucune action n'a été enregistrée dans le journal d'audit pour le moment.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "admin_panel/_pagination.html" %}
+{% endblock %}

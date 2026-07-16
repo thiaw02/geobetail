@@ -34,6 +34,13 @@
             <div class="stat-label">Alertes actives</div>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-warning"><i class="fas fa-exclamation-triangle"></i></div>
+        <div>
+            <div class="stat-value">{{ stats.signalements_vol_actifs }}</div>
+            <div class="stat-label">Signalements de vol actifs</div>
+        </div>
+    </div>
 </div>
 
 <!-- Statistiques secondaires -->
@@ -59,82 +66,48 @@
             <div class="stat-label">Colliers appairés</div>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-success"><i class="fas fa-server"></i></div>
+        <div>
+            <div class="stat-value">MQTT</div>
+            <div class="stat-label">Service externe</div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-4">
-    <!-- Utilisateurs récents -->
-    <div class="col-12 col-lg-6">
+    <!-- Activité récente combinée -->
+    <div class="col-12">
         <div class="card h-100">
             <div class="card-header d-flex align-items-center justify-content-between">
-                <span class="card-title"><i class="fas fa-user-plus me-2"></i>Derniers inscrits</span>
-                <a href="{% url 'admin_panel:user_list' %}" class="btn btn-ghost btn-sm">Tout voir</a>
+                <span class="card-title"><i class="fas fa-stream me-2"></i>Activité récente</span>
             </div>
             <div class="card-body">
-                {% if recent_users %}
+                {% if recent_users or recent_alertes or recent_signalements %}
                 <table class="admin-table">
                     <tbody>
                         {% for u in recent_users %}
                         <tr>
-                            <td>
-                                <strong>{{ u.username }}</strong><br>
-                                <span class="text-muted small">{{ u.email|default:"—" }}</span>
-                            </td>
-                            <td class="text-end">
-                                {% if u.is_superuser %}
-                                    <span class="badge badge-danger">Admin</span>
-                                {% elif u.is_staff %}
-                                    <span class="badge badge-info">Staff</span>
-                                {% else %}
-                                    <span class="badge badge-muted">Éleveur</span>
-                                {% endif %}
-                                <div class="text-muted small mt-1">{{ u.date_joined|date:"d/m/Y" }}</div>
-                            </td>
+                            <td><i class="fas fa-user-plus me-2"></i> <strong>{{ u.username }}</strong></td>
+                            <td class="text-end text-muted small">Inscription · {{ u.date_joined|date:"d/m/Y H:i" }}</td>
                         </tr>
                         {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p class="text-muted mb-0">Aucun utilisateur.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Alertes récentes -->
-    <div class="col-12 col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span class="card-title"><i class="fas fa-triangle-exclamation me-2"></i>Alertes non résolues</span>
-                <a href="{% url 'admin_panel:alerte_list' %}" class="btn btn-ghost btn-sm">Tout voir</a>
-            </div>
-            <div class="card-body">
-                {% if recent_alertes %}
-                <table class="admin-table">
-                    <tbody>
                         {% for a in recent_alertes %}
                         <tr>
-                            <td>
-                                <strong>{{ a.animal.nom }}</strong><br>
-                                <span class="text-muted small">{{ a.get_type_alerte_display }}</span>
-                            </td>
-                            <td class="text-end">
-                                {% if a.priorite == 'URGENT' %}
-                                    <span class="badge badge-danger">Urgente</span>
-                                {% elif a.priorite == 'HIGH' %}
-                                    <span class="badge badge-warning">Haute</span>
-                                {% elif a.priorite == 'MEDIUM' %}
-                                    <span class="badge badge-info">Moyenne</span>
-                                {% else %}
-                                    <span class="badge badge-muted">Basse</span>
-                                {% endif %}
-                                <div class="text-muted small mt-1">{{ a.date_creation|date:"d/m/Y H:i" }}</div>
-                            </td>
+                            <td><i class="fas fa-bell me-2"></i> Alerte <strong>{{ a.animal.nom }}</strong></td>
+                            <td class="text-end text-muted small">{{ a.get_type_alerte_display }} · {{ a.date_creation|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% for s in recent_signalements %}
+                        <tr>
+                            <td><i class="fas fa-exclamation-triangle me-2"></i> Signalement <strong>{{ s.animal.nom }}</strong></td>
+                            <td class="text-end text-muted small">{{ s.get_statut_display }} · {{ s.date_creation|date:"d/m/Y H:i" }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% else %}
-                <p class="text-muted mb-0">Aucune alerte active. Tout va bien !</p>
+                <p class="text-muted mb-0">Aucune activité récente.</p>
                 {% endif %}
             </div>
         </div>

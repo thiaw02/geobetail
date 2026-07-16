@@ -228,4 +228,49 @@ class Alerte(models.Model):
     
     def __str__(self):
         return f"Alerte {self.type_alerte} - {self.animal.nom}"
+
+
+class SignalementVol(models.Model):
+    STATUT_CHOICES = [
+        ('NOUVEAU', 'Nouveau'),
+        ('EN_COURS', 'En cours'),
+        ('RESOLU', 'Résolu'),
+        ('FAUX', 'Faux signalement'),
+    ]
+
+    animal = models.ForeignKey(Animal, on_delete=models.CASCADE)
+    proprietaire = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='signalements_vol')
+    position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True)
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='NOUVEAU')
+    commentaire = models.TextField(blank=True)
+    date_creation = models.DateTimeField(default=timezone.now)
+    date_resolution = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Signalement vol - {self.animal.nom} ({self.get_statut_display()})"
+
+
+class JournalAudit(models.Model):
+    ACTION_CHOICES = [
+        ('CONNEXION_ADMIN', 'Connexion admin'),
+        ('CONNEXION_ADMIN_ECHOUEE', 'Connexion admin échouée'),
+        ('CREATION_UTILISATEUR', 'Création utilisateur'),
+        ('MODIFICATION_UTILISATEUR', 'Modification utilisateur'),
+        ('SUPPRESSION_UTILISATEUR', 'Suppression utilisateur'),
+        ('CHANGEMENT_ROLE', 'Changement de rôle'),
+        ('CREATION_COLLIER', 'Création collier'),
+        ('MODIFICATION_COLLIER', 'Modification collier'),
+        ('SUPPRESSION_COLLIER', 'Suppression collier'),
+        ('CHANGEMENT_STATUT_SIGNALEMENT', 'Changement statut signalement vol'),
+        ('AUTRE', 'Autre'),
+    ]
+
+    utilisateur_cible = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='journaux_cible')
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+    auteur = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='journaux_auteur')
+    date = models.DateTimeField(default=timezone.now)
+    detail = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.utilisateur_cible} - {self.date}"
         
