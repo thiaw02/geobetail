@@ -1,0 +1,72 @@
+{% extends "admin_panel/base_admin.html" %}
+
+{% block title %}Retirer les animaux - {{ zone.nom }}{% endblock %}
+{% block page_title %}Zones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2>Retirer les animaux de « {{ zone.nom }} »</h2>
+        <p>Cette action va dissocier tous les animaux de cette zone.</p>
+    </div>
+    <a href="{% url 'admin_panel:zone_list' %}" class="btn btn-ghost">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if animaux %}
+        <p class="mb-4">Les animaux suivants seront retirés de la zone <strong>{{ zone.nom }}</strong> :</p>
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Type</th>
+                        <th>Statut</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in animaux %}
+                    <tr>
+                        <td><strong>{{ a.nom }}</strong></td>
+                        <td>{{ a.get_type_animal_display }}</td>
+                        <td>
+                            {% if a.statut == 'ACTIF' %}
+                                <span class="badge badge-success">Actif</span>
+                            {% elif a.statut == 'INACTIF' %}
+                                <span class="badge badge-muted">Inactif</span>
+                            {% elif a.statut == 'PERDU' %}
+                                <span class="badge badge-warning">Perdu</span>
+                            {% elif a.statut == 'MORT' %}
+                                <span class="badge badge-danger">Mort</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="form-actions">
+                <a href="{% url 'admin_panel:zone_list' %}" class="btn btn-outline">Annuler</a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-unlink"></i> Retirer tous les animaux
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-draw-polygon"></i></div>
+            <div class="empty-state-title">Aucun animal dans cette zone</div>
+            <p class="text-muted">Cette zone ne contient aucun animal.</p>
+            <a href="{% url 'admin_panel:zone_list' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

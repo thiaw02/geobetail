@@ -67,12 +67,12 @@
                         <td>{{ u.date_joined|date:"d/m/Y" }}</td>
                         <td>
                             <div class="table-actions">
-                                <a href="{% url 'admin_panel:user_update' u.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                <button class="btn btn-sm btn-outline btn-edit-user" data-id="{{ u.pk }}" data-username="{{ u.username }}" title="Modifier">
                                     <i class="fas fa-pen"></i>
-                                </a>
-                                <a href="{% url 'admin_panel:user_delete' u.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-delete-user" data-id="{{ u.pk }}" data-username="{{ u.username }}" title="Supprimer">
                                     <i class="fas fa-trash"></i>
-                                </a>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -91,4 +91,124 @@
 </div>
 
 {% include "admin_panel/_pagination.html" %}
+
+<!-- Modal Edition utilisateur -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier l'utilisateur</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body" id="edit-user-body">
+                <div class="text-center py-4">
+                    <div class="loader"></div>
+                    <p class="text-muted mt-3">Chargement du formulaire...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Suppression utilisateur -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Supprimer l'utilisateur</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body" id="delete-user-body">
+                <p>Êtes-vous sûr de vouloir supprimer l'utilisateur <strong id="delete-username"></strong> ?</p>
+                <p class="text-danger small">Cette action est irréversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Annuler</button>
+                <form id="delete-user-form" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    const editBody = document.getElementById('edit-user-body');
+    const deleteBody = document.getElementById('delete-user-body');
+    const deleteForm = document.getElementById('delete-user-form');
+
+    document.querySelectorAll('.btn-edit-user').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            editBody.innerHTML = '<div class="text-center py-4"><div class="loader"></div><p class="text-muted mt-3">Chargement du formulaire...</p></div>';
+            editModal.show();
+            fetch('{% url "admin_panel:user_update" 0 %}'.replace('/0/', '/' + id + '/'))
+                .then(function(r) { return r.text(); })
+                .then(function(html) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const form = doc.querySelector('.admin-form');
+                    if (form) {
+                        editBody.innerHTML = '<form method="post" class="admin-form" novalidate>' + form.innerHTML + '<div class="form-actions row mt-4"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></div></form>';
+                        const newForm = editBody.querySelector('form');
+                        newForm.action = '{% url "admin_panel:user_update" 0 %}'.replace('/0/', '/' + id + '/');
+                        newForm.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            const formData = new FormData(newForm);
+                            fetch(newForm.action, {
+                                method: 'POST',
+                                body: formData,
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            }).then(function(r) {
+                                if (r.ok) {
+                                    window.location.reload();
+                                } else {
+                                    editBody.innerHTML = '<div class="alert alert-danger">Erreur lors de la sauvegarde.</div>';
+                                }
+                            });
+                        });
+                    } else {
+                        editBody.innerHTML = '<div class="alert alert-danger">Formulaire introuvable.</div>';
+                    }
+                })
+                .catch(function() {
+                    editBody.innerHTML = '<div class="alert alert-danger">Erreur de chargement.</div>';
+                });
+        });
+    });
+
+    document.querySelectorAll('.btn-delete-user').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const username = this.dataset.username;
+            document.getElementById('delete-username').textContent = username;
+            deleteForm.action = '{% url "admin_panel:user_delete" 0 %}'.replace('/0/', '/' + id + '/');
+            deleteModal.show();
+        });
+    });
+
+    deleteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch(deleteForm.action, {
+            method: 'POST',
+            body: new FormData(deleteForm),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) {
+            if (r.ok) {
+                window.location.reload();
+            } else {
+                deleteBody.innerHTML = '<div class="alert alert-danger">Erreur lors de la suppression.</div>';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -29,6 +29,7 @@ urlpatterns = [
     path('zones/', views.ZoneListView.as_view(), name='zone_list'),
     path('zones/<int:pk>/modifier/', views.ZoneUpdateView.as_view(), name='zone_update'),
     path('zones/<int:pk>/supprimer/', views.ZoneDeleteView.as_view(), name='zone_delete'),
+    path('zones/<int:pk>/retirer-animaux/', views.ZoneDetachAnimalsView.as_view(), name='zone_detach_animals'),
 
     # Alertes
     path('alertes/', views.AlerteListView.as_view(), name='alerte_list'),

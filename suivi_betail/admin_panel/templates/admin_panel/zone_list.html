@@ -41,11 +41,14 @@
                         <td>{{ z.date_creation|date:"d/m/Y" }}</td>
                         <td>
                             <div class="table-actions">
-                                <a href="{% url 'admin_panel:zone_update' z.pk %}" class="btn btn-sm btn-outline" title="Modifier">
+                                <button class="btn btn-sm btn-outline btn-edit-zone" data-id="{{ z.pk }}" data-nom="{{ z.nom }}" title="Modifier">
                                     <i class="fas fa-pen"></i>
-                                </a>
-                                <a href="{% url 'admin_panel:zone_delete' z.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-delete-zone" data-id="{{ z.pk }}" data-nom="{{ z.nom }}" title="Supprimer">
                                     <i class="fas fa-trash"></i>
+                                </button>
+                                <a href="{% url 'admin_panel:zone_detach_animals' z.pk %}" class="btn btn-sm btn-outline" title="Retirer les animaux">
+                                    <i class="fas fa-unlink"></i>
                                 </a>
                             </div>
                         </td>
@@ -65,4 +68,124 @@
 </div>
 
 {% include "admin_panel/_pagination.html" %}
+
+<!-- Modal Edition zone -->
+<div class="modal fade" id="editZoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier la zone</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body" id="edit-zone-body">
+                <div class="text-center py-4">
+                    <div class="loader"></div>
+                    <p class="text-muted mt-3">Chargement du formulaire...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Suppression zone -->
+<div class="modal fade" id="deleteZoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Supprimer la zone</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body" id="delete-zone-body">
+                <p>Êtes-vous sûr de vouloir supprimer la zone <strong id="delete-zone-nom"></strong> ?</p>
+                <p class="text-danger small">Cette action est irréversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Annuler</button>
+                <form id="delete-zone-form" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = new bootstrap.Modal(document.getElementById('editZoneModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteZoneModal'));
+    const editBody = document.getElementById('edit-zone-body');
+    const deleteBody = document.getElementById('delete-zone-body');
+    const deleteForm = document.getElementById('delete-zone-form');
+
+    document.querySelectorAll('.btn-edit-zone').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            editBody.innerHTML = '<div class="text-center py-4"><div class="loader"></div><p class="text-muted mt-3">Chargement du formulaire...</p></div>';
+            editModal.show();
+            fetch('{% url "admin_panel:zone_update" 0 %}'.replace('/0/', '/' + id + '/'))
+                .then(function(r) { return r.text(); })
+                .then(function(html) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const form = doc.querySelector('.admin-form');
+                    if (form) {
+                        editBody.innerHTML = '<form method="post" class="admin-form" novalidate>' + form.innerHTML + '<div class="form-actions row mt-4"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button></div></form>';
+                        const newForm = editBody.querySelector('form');
+                        newForm.action = '{% url "admin_panel:zone_update" 0 %}'.replace('/0/', '/' + id + '/');
+                        newForm.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            const formData = new FormData(newForm);
+                            fetch(newForm.action, {
+                                method: 'POST',
+                                body: formData,
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            }).then(function(r) {
+                                if (r.ok) {
+                                    window.location.reload();
+                                } else {
+                                    editBody.innerHTML = '<div class="alert alert-danger">Erreur lors de la sauvegarde.</div>';
+                                }
+                            });
+                        });
+                    } else {
+                        editBody.innerHTML = '<div class="alert alert-danger">Formulaire introuvable.</div>';
+                    }
+                })
+                .catch(function() {
+                    editBody.innerHTML = '<div class="alert alert-danger">Erreur de chargement.</div>';
+                });
+        });
+    });
+
+    document.querySelectorAll('.btn-delete-zone').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const nom = this.dataset.nom;
+            document.getElementById('delete-zone-nom').textContent = nom;
+            deleteForm.action = '{% url "admin_panel:zone_delete" 0 %}'.replace('/0/', '/' + id + '/');
+            deleteModal.show();
+        });
+    });
+
+    deleteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch(deleteForm.action, {
+            method: 'POST',
+            body: new FormData(deleteForm),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function(r) {
+            if (r.ok) {
+                window.location.reload();
+            } else {
+                deleteBody.innerHTML = '<div class="alert alert-danger">Erreur lors de la suppression.</div>';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

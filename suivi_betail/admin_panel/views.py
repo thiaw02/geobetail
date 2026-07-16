@@ -1,4 +1,6 @@
+from django.contrib import messages
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.db.models import Count
 from django.views.generic import (
@@ -244,6 +246,27 @@ class ZoneDeleteView(AdminRequiredMixin, DeleteView):
         ctx['cancel_url'] = self.success_url
         ctx['obj_type'] = 'Zone de pâturage'
         return ctx
+
+
+class ZoneDetachAnimalsView(AdminRequiredMixin, TemplateView):
+    template_name = 'admin_panel/zone_detach_animals.html'
+
+    def get(self, request, *args, **kwargs):
+        zone = get_object_or_404(Zone, pk=kwargs['pk'])
+        animaux = Animal.objects.filter(zone=zone)
+        return render(request, self.template_name, {'zone': zone, 'animaux': animaux})
+
+    def post(self, request, *args, **kwargs):
+        zone = get_object_or_404(Zone, pk=kwargs['pk'])
+        animal_id = request.POST.get('animal_id')
+        if animal_id:
+            Animal.objects.filter(pk=animal_id, zone=zone).update(zone=None)
+            messages.success(request, "Animal retiré de la zone.")
+        else:
+            count = Animal.objects.filter(zone=zone).count()
+            Animal.objects.filter(zone=zone).update(zone=None)
+            messages.success(request, f"{count} animal(retiré(s) de la zone « {zone.nom} ».")
+        return redirect('admin_panel:zone_list')
 
 
 # ============================================================================
