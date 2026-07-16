@@ -87,6 +87,15 @@ def animaux_list(request):
         'is_superuser': getattr(request.user, 'is_superuser', False),
     })
 
+
+def mes_zones(request):
+    """Liste des zones de l'utilisateur connecté."""
+    from django.contrib.auth.decorators import login_required
+    from animaux.models import Zone
+    zones = Zone.objects.all().order_by('nom')
+    return render(request, 'animaux/mes_zones.html', {'zones': zones})
+
+
 def map_view(request):
     """Carte de suivi"""
     return render(request, 'animaux/map.html')
@@ -950,9 +959,7 @@ def create_zone(request):
 
     animal_ids = data.get('animaux') or []
     if animal_ids:
-        zone.animaux.set(
-            Animal.objects.filter(id__in=animal_ids, device__proprietaire=request.user)
-        )
+        Animal.objects.filter(id__in=animal_ids, device__proprietaire=request.user).update(zone=zone)
 
     return JsonResponse({
         'status': 'success',

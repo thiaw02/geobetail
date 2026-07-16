@@ -224,7 +224,7 @@ class ZoneListView(AdminRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return Zone.objects.prefetch_related('animaux').order_by('nom')
+        return Zone.objects.order_by('nom')
 
 
 class ZoneUpdateView(AdminRequiredMixin, UpdateView):

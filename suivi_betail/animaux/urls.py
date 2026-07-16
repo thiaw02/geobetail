@@ -10,6 +10,7 @@ urlpatterns = [
     path('', views.accueil, name='accueil'),
     path('dashboard/', login_required(views.dashboard), name='dashboard'),
     path('animaux/', login_required(views.animaux_list), name='animaux_list'),
+    path('zones/', login_required(views.mes_zones), name='mes_zones'),
     path('carte/', login_required(views.map_view), name='carte'),
     path('map/', login_required(views.map_view), name='map'),
     path('connexion/', views.connexion, name='connexion'),

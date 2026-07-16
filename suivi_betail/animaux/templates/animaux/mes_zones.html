@@ -1,0 +1,70 @@
+{% extends "animaux/base.html" %}
+
+{% block title %}Mes Zones - GeoBétail{% endblock %}
+{% block meta_description %}Consultez vos zones de pâturage et de surveillance{% endblock %}
+
+{% block page_title %}Mes Zones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-title-group">
+        <h2><i class="fas fa-draw-polygon icon-pulse"></i> Mes Zones</h2>
+        <p>Zones de pâturage, de stabulation et zones à risque</p>
+    </div>
+</div>
+
+<div class="stat-grid mb-4">
+    {% for zone in zones %}
+    <div class="stat-card">
+        <div class="stat-icon" style="background: {{ zone.couleur }}20; color: {{ zone.couleur }};">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{ zone.nom }}</div>
+            <div class="stat-label">{{ zone.get_type_zone_display }}</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="fas fa-draw-polygon"></i></div>
+            <div class="empty-state-title">Aucune zone configurée</div>
+            <p class="text-muted">Les zones apparaîtront ici une fois créées.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if zones %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="data-table responsive-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Type</th>
+                        <th>Couleur</th>
+                        <th>Date de création</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zone in zones %}
+                    <tr>
+                        <td><strong>{{ zone.nom }}</strong></td>
+                        <td>{{ zone.get_type_zone_display }}</td>
+                        <td>
+                            <span class="badge" style="background: {{ zone.couleur }}; color: #fff;">
+                                {{ zone.couleur }}
+                            </span>
+                        </td>
+                        <td>{{ zone.date_creation|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

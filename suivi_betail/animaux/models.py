@@ -139,6 +139,7 @@ class Animal(models.Model):
     date_dernier_contact = models.DateTimeField(null=True, blank=True)
     emoji = models.CharField(max_length=10, default='fa-paw')
     couleur = models.CharField(max_length=7, default='#4CAF50')
+    zone = models.ForeignKey('Zone', on_delete=models.SET_NULL, null=True, blank=True, related_name='animaux_zone', related_query_name='animal_zone')
 
     # Correspondance type d'animal -> icône Font Awesome (animée via .icon-pulse)
     ANIMAL_ICONS = {
@@ -195,7 +196,6 @@ class Zone(models.Model):
     polygone = models.JSONField(default=list, blank=True)
     couleur = models.CharField(max_length=7, default='#FF0000')
     date_creation = models.DateTimeField(default=timezone.now)
-    animaux = models.ManyToManyField(Animal, blank=True, related_name='zones')
     
     def __str__(self):
         return self.nom

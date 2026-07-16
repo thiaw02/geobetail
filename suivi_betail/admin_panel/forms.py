@@ -90,7 +90,7 @@ class AnimalForm(StyledFormMixin, forms.ModelForm):
         model = Animal
         fields = [
             'nom', 'type_animal', 'race', 'date_naissance',
-            'device', 'statut', 'emoji', 'couleur',
+            'device', 'statut', 'emoji', 'couleur', 'zone',
         ]
         widgets = {
             'date_naissance': forms.DateInput(attrs={'type': 'date'}),
@@ -101,7 +101,7 @@ class ZoneForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = Zone
         fields = [
-            'nom', 'description', 'type_zone', 'couleur', 'animaux', 'polygone',
+            'nom', 'description', 'type_zone', 'couleur', 'polygone',
         ]
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
@@ -109,7 +109,6 @@ class ZoneForm(StyledFormMixin, forms.ModelForm):
                 'rows': 4,
                 'placeholder': 'GeoJSON, ex: {"type":"Polygon","coordinates":[[[0,0],[0,1],[1,1],[1,0],[0,0]]]}',
             }),
-            'animaux': forms.CheckboxSelectMultiple(),
         }
 
 

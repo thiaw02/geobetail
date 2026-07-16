@@ -45,6 +45,7 @@
                         <th>Type</th>
                         <th>Race</th>
                         <th>Collier</th>
+                        <th>Zone</th>
                         <th>Statut</th>
                         <th>Dernier contact</th>
                         <th class="text-end">Actions</th>
@@ -63,6 +64,7 @@
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
+                        <td>{{ a.zone.nom|default:"—" }}</td>
                         <td>
                             {% if a.statut == 'ACTIF' %}
                                 <span class="badge badge-success">Actif</span>

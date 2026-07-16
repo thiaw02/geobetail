@@ -415,6 +415,9 @@
                     <a href="{% url 'animaux:animaux_list' %}" class="sidebar-link {% if 'animaux' in request.path %}active{% endif %}">
                         <i class="fas fa-list"></i> Animaux
                     </a>
+                    <a href="{% url 'animaux:mes_zones' %}" class="sidebar-link {% if 'zones' in request.path %}active{% endif %}">
+                        <i class="fas fa-draw-polygon"></i> Zones
+                    </a>
                     <a href="{% url 'animaux:mes_colliers' %}" class="sidebar-link {% if 'colliers' in request.path %}active{% endif %}">
                         <i class="fas fa-satellite"></i> Collier
                     </a>
@@ -513,6 +516,9 @@
         </a>
         <a href="{% url 'animaux:animaux_list' %}" class="bottom-nav-item {% if 'animaux' in request.path %}active{% endif %}">
             <i class="fas fa-list"></i><span>Animaux</span>
+        </a>
+        <a href="{% url 'animaux:mes_zones' %}" class="bottom-nav-item {% if 'zones' in request.path %}active{% endif %}">
+            <i class="fas fa-draw-polygon"></i><span>Zones</span>
         </a>
         <a href="{% url 'animaux:alertes' %}" class="bottom-nav-item {% if 'alertes' in request.path %}active{% endif %}">
             <i class="fas fa-bell"></i><span>Alertes</span>
