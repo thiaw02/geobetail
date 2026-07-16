@@ -101,8 +101,11 @@ def verifier_geofencing(lat, lng, animal):
     Retourne {'hors_zone': bool, 'zones_hors': [{'nom','id'}, ...]}.
     L'animal est considéré hors zone s'il n'est dans AUCUNE zone valide.
     """
-    zones = animal.zones.filter(type_zone__in=['PATURAGE', 'STABULATION'])
-    if not zones.exists():
+    if not animal or not animal.zone:
+        return {'hors_zone': False, 'zones_hors': []}
+
+    zone = animal.zone
+    if zone.type_zone not in ['PATURAGE', 'STABULATION']:
         return {'hors_zone': False, 'zones_hors': []}
 
     try:
@@ -110,17 +113,14 @@ def verifier_geofencing(lat, lng, animal):
     except (TypeError, ValueError):
         return {'hors_zone': False, 'zones_hors': []}
 
-    zones_valides = 0
-    zones_hors = []
-    for zone in zones:
-        geoms = _extraire_geometries(zone.polygone)
-        if not geoms:
-            continue
-        zones_valides += 1
-        if not any(_contient_zone(g, lat, lng) for g in geoms):
-            zones_hors.append({'nom': zone.nom, 'id': zone.id})
+    geoms = _extraire_geometries(zone.polygone)
+    if not geoms:
+        return {'hors_zone': False, 'zones_hors': []}
+
+    if any(_contient_zone(g, lat, lng) for g in geoms):
+        return {'hors_zone': False, 'zones_hors': []}
 
     return {
-        'hors_zone': zones_valides > 0 and len(zones_hors) == zones_valides,
-        'zones_hors': zones_hors,
+        'hors_zone': True,
+        'zones_hors': [{'nom': zone.nom, 'id': zone.id}],
     }

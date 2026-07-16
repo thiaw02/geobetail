@@ -619,11 +619,11 @@ def check_alertes(animal, position, device):
                 animal=animal,
                 type_alerte='BATTERIE_FAIBLE',
                 resolue=False,
-                defaults={
-                    'message': f'Batterie faible: {device.batterie}% - Device {device.device_id}',
-                    'priorite': 'MOYENNE',
-                    'position': position
-                }
+                    defaults={
+                        'message': f'Batterie faible: {device.batterie}% - Device {device.device_id}',
+                        'priorite': 'MEDIUM',
+                        'position': position
+                    }
             )
             if created:
                 print(f"🚨 ALERTE: Batterie faible {device.batterie}%")
@@ -643,7 +643,7 @@ def check_alertes(animal, position, device):
                     resolue=False,
                     defaults={
                         'message': f'Signal faible - Peu de positions récentes',
-                        'priorite': 'BASSE',
+                        'priorite': 'LOW',
                         'position': position
                     }
                 )
@@ -662,7 +662,7 @@ def check_alertes(animal, position, device):
                     resolue=False,
                     defaults={
                         'message': f'{animal.nom} a quitté la zone de pâturage : {noms}',
-                        'priorite': 'HAUTE',
+                        'priorite': 'HIGH',
                         'position': position
                     }
                 )

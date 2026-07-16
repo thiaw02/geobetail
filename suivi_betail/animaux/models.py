@@ -208,6 +208,7 @@ class Alerte(models.Model):
         ('INACTIVITE', 'Inactivité prolongée'),
         ('MORT', 'Animal immobile'),
         ('ERREUR_GPS', 'Erreur GPS'),
+        ('SIGNAL_FAIBLE', 'Signal faible'),
     ]
     
     PRIORITE_CHOICES = [
