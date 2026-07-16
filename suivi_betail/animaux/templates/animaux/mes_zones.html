@@ -6,65 +6,137 @@
 {% block page_title %}Mes Zones{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="page-title-group">
-        <h2><i class="fas fa-draw-polygon icon-pulse"></i> Mes Zones</h2>
-        <p>Zones de pâturage, de stabulation et zones à risque</p>
-    </div>
-</div>
+<style>
+    .zones-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: var(--space-6);
+    }
 
-<div class="stat-grid mb-4">
+    .zone-card {
+        background: var(--color-bg-white);
+        border: 1px solid var(--color-border-light);
+        border-radius: var(--radius-2xl);
+        padding: var(--space-6);
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .zone-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .zone-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: var(--zone-color, #1B3B2F);
+    }
+
+    .zone-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-4);
+        margin-top: var(--space-2);
+    }
+
+    .zone-nom {
+        font-size: var(--font-size-lg);
+        font-weight: 700;
+        color: var(--color-primary-forest);
+        margin: 0;
+    }
+
+    .zone-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .zone-type-paturage { background: #E8F5E9; color: #2E7D32; }
+    .zone-type-stabulation { background: #FFF3E0; color: #EF6C00; }
+    .zone-type-zone_risque { background: #FFEBEE; color: #C62828; }
+    .zone-type-zone_interdite { background: #F3E5F5; color: #7B1FA2; }
+
+    .zone-description {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        margin-top: var(--space-3);
+        line-height: 1.5;
+    }
+
+    .zone-meta {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+    }
+
+    .zone-color-preview {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-lg);
+        border: 2px solid var(--color-border-light);
+        box-shadow: var(--shadow-xs);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-16) var(--space-6);
+    }
+
+    .empty-state i {
+        font-size: 3.5rem;
+        color: var(--color-border-default);
+        margin-bottom: var(--space-4);
+    }
+</style>
+
+{% if zones %}
+<div class="zones-grid">
     {% for zone in zones %}
-    <div class="stat-card">
-        <div class="stat-icon" style="background: {{ zone.couleur }}20; color: {{ zone.couleur }};">
-            <i class="fas fa-map-marker-alt"></i>
+    <div class="zone-card" style="--zone-color: {{ zone.couleur }};">
+        <div class="zone-header">
+            <div>
+                <h3 class="zone-nom">{{ zone.nom }}</h3>
+                <span class="zone-type-badge zone-type-{{ zone.type_zone|lower }}">
+                    <i class="fas fa-map-marker-alt"></i>
+                    {{ zone.get_type_zone_display }}
+                </span>
+            </div>
+            <div class="zone-color-preview" style="background: {{ zone.couleur }};" title="Couleur de la zone"></div>
         </div>
-        <div>
-            <div class="stat-value">{{ zone.nom }}</div>
-            <div class="stat-label">{{ zone.get_type_zone_display }}</div>
-        </div>
-    </div>
-    {% empty %}
-    <div class="col-12">
-        <div class="empty-state">
-            <div class="empty-state-icon"><i class="fas fa-draw-polygon"></i></div>
-            <div class="empty-state-title">Aucune zone configurée</div>
-            <p class="text-muted">Les zones apparaîtront ici une fois créées.</p>
+
+        {% if zone.description %}
+        <p class="zone-description">{{ zone.description }}</p>
+        {% endif %}
+
+        <div class="zone-meta">
+            <i class="fas fa-clock"></i>
+            <span>Créée le {{ zone.date_creation|date:"d/m/Y" }}</span>
         </div>
     </div>
     {% endfor %}
 </div>
-
-{% if zones %}
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="data-table responsive-table">
-                <thead>
-                    <tr>
-                        <th>Nom</th>
-                        <th>Type</th>
-                        <th>Couleur</th>
-                        <th>Date de création</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for zone in zones %}
-                    <tr>
-                        <td><strong>{{ zone.nom }}</strong></td>
-                        <td>{{ zone.get_type_zone_display }}</td>
-                        <td>
-                            <span class="badge" style="background: {{ zone.couleur }}; color: #fff;">
-                                {{ zone.couleur }}
-                            </span>
-                        </td>
-                        <td>{{ zone.date_creation|date:"d/m/Y H:i" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-draw-polygon"></i>
+    <h3>Aucune zone configurée</h3>
+    <p class="text-muted">Les zones apparaîtront ici une fois créées.</p>
 </div>
 {% endif %}
 {% endblock %}
