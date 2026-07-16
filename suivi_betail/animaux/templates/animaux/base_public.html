@@ -164,6 +164,8 @@
         .mobile-menu a:hover { background: var(--color-bg-earth); color: var(--color-primary-forest); }
         .mobile-menu .btn { width: 100%; margin-top: var(--space-1); }
 
+        .mobile-only { display: none !important; }
+
         /* ---------- Footer ---------- */
         .site-footer {
             background: var(--color-primary-forest);
@@ -248,7 +250,7 @@
                     <a href="{% if user.is_staff or user.is_superuser %}{% url 'admin_panel:dashboard' %}{% else %}{% url 'animaux:dashboard' %}{% endif %}" class="btn btn-primary">Mon espace</a>
                 {% else %}
                     <a href="{% url 'animaux:connexion' %}" class="btn btn-ghost">Se connecter</a>
-                    <a href="{% url 'animaux:inscription' %}" class="btn btn-primary">Créer un compte</a>
+                    <a href="{% url 'animaux:inscription' %}" class="btn btn-primary mobile-only">Créer un compte</a>
                 {% endif %}
                 <button class="nav-toggle" id="navToggle" aria-label="Ouvrir le menu" aria-expanded="false">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
