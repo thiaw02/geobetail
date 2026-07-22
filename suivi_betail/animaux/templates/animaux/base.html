@@ -462,10 +462,6 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <h1 class="topbar-title">{% block page_title %}GeoBétail{% endblock %}</h1>
-                    <a href="{% url 'animaux:alertes' %}" class="topbar-alertes-btn {% if 'alertes' in request.path %}active{% endif %}" aria-label="Alertes">
-                        <i class="fas fa-bell"></i>
-                        <span>Alertes</span>
-                    </a>
                 </div>
                 <div class="topbar-right">
                     <!-- Bouton profil (toutes tailles) -->
@@ -496,6 +492,10 @@
                         </form>
                     </div>
                     {% endif %}
+                    <a href="{% url 'animaux:alertes' %}" class="topbar-alertes-btn {% if 'alertes' in request.path %}active{% endif %}" aria-label="Alertes">
+                        <i class="fas fa-bell"></i>
+                        <span>Alertes</span>
+                    </a>
                 </div>
             </header>
 

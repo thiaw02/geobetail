@@ -51,7 +51,7 @@ def appairer_collier(request):
         return Response({
             'status': 'error',
             'message': 'Ce collier est déjà associé à un compte'
-        }, status=400)
+        }, status=409)
     
     username = request.data.get('username', '').strip()
     password = request.data.get('password', '').strip()
@@ -130,7 +130,7 @@ def appairer_collier_qr(request):
         return Response({
             'status': 'error',
             'message': 'Ce collier est déjà associé à un compte'
-        }, status=400)
+        }, status=409)
     
     request.data['code'] = code
     return appairer_collier(request)

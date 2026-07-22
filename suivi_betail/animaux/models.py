@@ -95,6 +95,7 @@ class Device(models.Model):
     code_appairage = models.CharField(max_length=20, unique=True, blank=True)
     date_appairage = models.DateTimeField(null=True, blank=True)
     est_appaire = models.BooleanField(default=False)
+    qr_code = models.ImageField(upload_to='qrcodes/', null=True, blank=True)
     
     def save(self, *args, **kwargs):
         if not self.code_appairage:

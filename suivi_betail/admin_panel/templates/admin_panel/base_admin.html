@@ -197,9 +197,6 @@
             <a href="{% url 'admin_panel:zone_list' %}" class="sidebar-link {% if 'zones' in request.path %}active{% endif %}">
                 <i class="fas fa-draw-polygon"></i> Zones
             </a>
-            <a href="{% url 'admin_panel:alerte_list' %}" class="sidebar-link {% if 'alertes' in request.path %}active{% endif %}">
-                <i class="fas fa-bell"></i> Alertes
-            </a>
             <a href="{% url 'admin_panel:signalementvol_list' %}" class="sidebar-link {% if 'signalements' in request.path %}active{% endif %}">
                 <i class="fas fa-exclamation-triangle"></i> Signalements de vol
             </a>
@@ -240,9 +237,6 @@
     </a>
     <a href="{% url 'admin_panel:device_list' %}" class="bottom-nav-item {% if 'colliers' in request.path %}active{% endif %}">
         <i class="fas fa-satellite"></i><span>Colliers</span>
-    </a>
-    <a href="{% url 'admin_panel:alerte_list' %}" class="bottom-nav-item {% if 'alertes' in request.path %}active{% endif %}">
-        <i class="fas fa-bell"></i><span>Alertes</span>
     </a>
     <a href="{% url 'admin_panel:signalementvol_list' %}" class="bottom-nav-item {% if 'signalements' in request.path %}active{% endif %}">
         <i class="fas fa-exclamation-triangle"></i><span>Signalements</span>

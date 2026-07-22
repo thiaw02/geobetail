@@ -238,6 +238,8 @@ REST_FRAMEWORK = {
         'tbeam_ingest': '100/minute',
         'image_upload': '30/minute',
         'anon_read': '100/hour',
+        'anon': '100/min',
+        'user': '1000/hour',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
